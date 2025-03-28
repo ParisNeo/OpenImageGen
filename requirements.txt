@@ -1,0 +1,13 @@
+fastapi>=0.100.0
+uvicorn[standard]>=0.20.0
+pydantic>=2.0.0
+torch>=2.0.0
+diffusers>=0.26.0 # Ensure a recent version for latest pipelines
+transformers>=4.30.0
+accelerate>=0.25.0
+Pillow>=9.0.0     # For image saving
+toml>=0.10.0
+pipmaster>=0.5.4  # Or remove if not strictly needed for dependency checks
+# Add specific model requirements if necessary, e.g.
+# sentencepiece # (Potentially needed by some tokenizers like T5)
+# opencv-python # (Potentially needed by some pipelines/utility functions)
