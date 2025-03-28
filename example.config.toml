@@ -1,0 +1,25 @@
+# Default configuration for OpenImageGen
+[models]
+# Add your desired image generation models here
+# Format: <key> = {name = "huggingface_model_name", type = "pipeline_type"}
+# Supported types: "stable_diffusion", "stable_diffusion_xl", "kandinsky", "deepfloyd_if" (more can be added)
+stable_diffusion_1_5 = {name = "runwayml/stable-diffusion-v1-5", type = "stable_diffusion"}
+stable_diffusion_xl = {name = "stabilityai/stable-diffusion-xl-base-1.0", type = "stable_diffusion_xl"}
+# kandinsky = {name = "kandinsky-community/kandinsky-2-2-decoder", type = "kandinsky"} # Example
+
+[settings]
+default_model = "stable_diffusion_1_5" # Model to use if none specified in request
+force_gpu = false              # If true, requires a GPU and raises error if none found
+use_gpu = true                 # If true, attempts to use GPU if available (ignored if force_gpu=true)
+dtype = "float16"              # Data type: "float16" or "bfloat16" (bfloat16 may require Ampere+ GPU)
+output_folder = "./outputs"    # Directory to save generated images
+model_cache_dir = "./models"   # Directory for Hugging Face model cache
+port = 8089                    # Port for the API server
+host = "0.0.0.0"               # Host for the API server
+file_retention_time = 3600     # Time in seconds to keep generated files (1 hour)
+
+[generation]
+# Default generation parameters (can be overridden in API requests)
+guidance_scale = 7.5
+num_inference_steps = 50
+num_images_per_prompt = 1      # Default number of images to generate per prompt
