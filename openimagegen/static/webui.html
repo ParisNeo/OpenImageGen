@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenImageGen UI</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f4; }
+        .container { max-width: 800px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], textarea, select, input[type="number"] { width: calc(100% - 22px); padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; }
+        textarea { height: 80px; resize: vertical; }
+        button { background-color: #5cb85c; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        button:hover { background-color: #4cae4c; }
+        #status { margin-top: 20px; padding: 10px; background: #e9e9e9; border-radius: 4px; font-family: monospace; white-space: pre-wrap; word-wrap: break-word; }
+        #results { margin-top: 20px; }
+        #results img { max-width: 100%; height: auto; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        .progress-bar { width: 100%; background-color: #ddd; border-radius: 4px; margin-top: 5px; height: 20px; overflow: hidden; display: none; }
+        .progress-bar div { width: 0%; height: 100%; background-color: #4caf50; text-align: center; line-height: 20px; color: white; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>OpenImageGen</h1>
+        <form id="genForm">
+            <label for="prompt">Prompt:</label>
+            <textarea id="prompt" name="prompt" required>A futuristic cityscape at sunset</textarea>
+
+            <label for="negative_prompt">Negative Prompt:</label>
+            <textarea id="negative_prompt" name="negative_prompt">blurry, low quality, text, watermark</textarea>
+
+            <label for="model_name">Model:</label>
+            <select id="model_name" name="model_name"></select>
+
+            <label for="width">Width:</label>
+            <input type="number" id="width" name="width" placeholder="e.g., 512 (default)">
+
+            <label for="height">Height:</label>
+            <input type="number" id="height" name="height" placeholder="e.g., 512 (default)">
+
+            <label for="steps">Inference Steps:</label>
+            <input type="number" id="steps" name="steps" placeholder="e.g., 50 (default)">
+
+            <label for="guidance_scale">Guidance Scale (CFG):</label>
+            <input type="number" id="guidance_scale" name="guidance_scale" step="0.1" placeholder="e.g., 7.5 (default)">
+
+            <label for="num_images_per_prompt">Number of Images:</label>
+            <input type="number" id="num_images_per_prompt" name="num_images_per_prompt" value="1" min="1">
+
+            <label for="seed">Seed (-1 for random):</label>
+            <input type="number" id="seed" name="seed" value="-1">
+
+            <button type="submit">Generate Image</button>
+        </form>
+
+        <div id="status">Status messages will appear here...</div>
+        <div class="progress-bar" id="progressBar"><div id="progressIndicator">0%</div></div>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('genForm');
+        const statusDiv = document.getElementById('status');
+        const resultsDiv = document.getElementById('results');
+        const modelSelect = document.getElementById('model_name');
+        const progressBar = document.getElementById('progressBar');
+        const progressIndicator = document.getElementById('progressIndicator');
+        let currentJobId = null;
+        let statusInterval = null;
+
+        // Fetch available models on load
+        fetch('/models')
+            .then(response => response.json())
+            .then(data => {
+                if (data.available_models && data.available_models.length > 0) {
+                    data.available_models.forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model;
+                        option.textContent = model;
+                        modelSelect.appendChild(option);
+                    });
+                    // Optionally select the default model
+                    fetch('/health').then(r => r.json()).then(h => {
+                        if (h.default_model) modelSelect.value = h.default_model;
+                    });
+                } else {
+                     modelSelect.innerHTML = '<option value="">No models configured</option>';
+                }
+            })
+            .catch(error => {
+                statusDiv.textContent = 'Error fetching models: ' + error;
+                console.error('Error fetching models:', error);
+                 modelSelect.innerHTML = '<option value="">Error loading models</option>';
+            });
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            clearStatusCheck(); // Stop previous checks if any
+            resultsDiv.innerHTML = ''; // Clear previous results
+            statusDiv.textContent = 'Submitting job...';
+            progressBar.style.display = 'none';
+            progressIndicator.style.width = '0%';
+            progressIndicator.textContent = '0%';
+
+
+            const formData = new FormData(form);
+            const data = {};
+            formData.forEach((value, key) => {
+                // Convert empty strings for numbers to null, handle seed -1
+                if (['width', 'height', 'steps', 'num_images_per_prompt'].includes(key)) {
+                    data[key] = value === '' ? null : parseInt(value, 10);
+                } else if (key === 'guidance_scale') {
+                     data[key] = value === '' ? null : parseFloat(value);
+                } else if (key === 'seed') {
+                    data[key] = value === '-1' || value === '' ? null : parseInt(value, 10);
+                } else if (value !== '') { // Only include non-empty strings
+                     data[key] = value;
+                }
+            });
+             // Explicitly add model if selected, otherwise backend uses default
+            if (modelSelect.value) {
+                data['model_name'] = modelSelect.value;
+            }
+
+
+            try {
+                const response = await fetch('/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || `HTTP error! Status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                currentJobId = result.job_id;
+                statusDiv.textContent = `Job submitted: ${currentJobId}. Waiting for status updates...`;
+                startStatusCheck(currentJobId);
+
+            } catch (error) {
+                statusDiv.textContent = 'Error submitting job: ' + error.message;
+                console.error('Error submitting job:', error);
+            }
+        });
+
+        function startStatusCheck(jobId) {
+            progressBar.style.display = 'block'; // Show progress bar
+            statusInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/status/${jobId}`);
+                    if (!response.ok) {
+                        // Handle job not found after initial submission (should be rare)
+                        if (response.status === 404) {
+                             statusDiv.textContent = `Job ${jobId} not found.`;
+                             clearStatusCheck();
+                             return;
+                        }
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    const jobStatus = await response.json();
+
+                    // Update progress bar
+                    progressIndicator.style.width = `${jobStatus.progress}%`;
+                    progressIndicator.textContent = `${jobStatus.progress}%`;
+
+                    statusDiv.textContent = `Job ${jobId}: ${jobStatus.status} (${jobStatus.progress}%) - ${jobStatus.message || ''}`;
+
+
+                    if (jobStatus.status === 'completed') {
+                        clearStatusCheck();
+                        progressBar.style.display = 'none'; // Hide progress bar
+                        if (jobStatus.image_urls && jobStatus.image_urls.length > 0) {
+                            resultsDiv.innerHTML = '<h3>Generated Images:</h3>';
+                            jobStatus.image_urls.forEach(url => {
+                                const img = document.createElement('img');
+                                img.src = url; // FastAPI handles serving the download URL
+                                resultsDiv.appendChild(img);
+                            });
+                        } else {
+                             resultsDiv.textContent = 'Generation completed, but no image URLs found.';
+                        }
+                    } else if (jobStatus.status === 'failed') {
+                        clearStatusCheck();
+                         progressBar.style.display = 'none'; // Hide progress bar
+                        statusDiv.textContent = `Job ${jobId} failed: ${jobStatus.message || 'Unknown error'}`;
+                    }
+                    // Continue polling if pending or processing
+
+                } catch (error) {
+                    console.error('Error fetching status:', error);
+                    statusDiv.textContent = `Error fetching status for job ${jobId}: ${error.message}`;
+                    // Optional: Stop polling on persistent errors?
+                    // clearStatusCheck();
+                }
+            }, 2000); // Check every 2 seconds
+        }
+
+        function clearStatusCheck() {
+            if (statusInterval) {
+                clearInterval(statusInterval);
+                statusInterval = null;
+            }
+             // Reset progress bar if check is cleared before completion/failure
+            // progressBar.style.display = 'none';
+            // progressIndicator.style.width = '0%';
+            // progressIndicator.textContent = '0%';
+        }
+
+    </script>
+</body>
+</html>
