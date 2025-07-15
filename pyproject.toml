@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "openimagegen"
+version = "0.1.0"
+description = "Open source image generation API using diffusion models"
+authors = [
+  { name = "ParisNeo", email = "parisneo_ai@gmail.com" }
+]
+dependencies = [
+    "fastapi>=0.100.0",
+    "uvicorn[standard]>=0.20.0",
+    "pydantic>=2.0.0",
+    "torch>=2.0.0",
+    "diffusers>=0.26.0",
+    "transformers>=4.30.0",
+    "accelerate>=0.25.0",
+    "Pillow>=9.0.0",
+    "toml>=0.10.0",
+    "pipmaster>=0.5.4"
+]
+requires-python = ">=3.11"
+
+[project.urls]
+"Homepage" = "https://github.com/ParisNeo/OpenImageGen"
+
+[project.classifiers]
+"Programming Language :: Python :: 3" = true
+"Programming Language :: Python :: 3.11" = true
+"Programming Language :: Python :: 3.12" = true
+"License :: OSI Approved :: Apache Software License" = true
+"Operating System :: OS Independent" = true
+"Topic :: Scientific/Engineering :: Artificial Intelligence" = true
+"Topic :: Multimedia :: Graphics :: Graphics Conversion" = true
+"Framework :: FastAPI" = true
+
+[tool.setuptools]
+packages = ["openimagegen"]
+include_package_data = true
+
+[tool.setuptools.entry-points.console_scripts]
+openimagegen = "openimagegen.cli:main"
+
+[project.optional-dependencies]
+dev = ["pytest", "black"]
