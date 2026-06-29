@@ -1,0 +1,24 @@
+[settings]
+default_model = "stable_diffusion_1_5"
+force_gpu = false
+use_gpu = true
+dtype = "float16"
+output_folder = "./outputs"
+model_cache_dir = "./models"
+port = 8089
+host = "0.0.0.0"
+file_retention_time = 3600
+cleanup_interval_seconds = 900
+
+[generation]
+guidance_scale = 7.5
+num_inference_steps = 50
+num_images_per_prompt = 1
+
+[models.stable_diffusion_1_5]
+name = "runwayml/stable-diffusion-v1-5"
+type = "stable_diffusion"
+
+[models.stable_diffusion_xl]
+name = "stabilityai/stable-diffusion-xl-base-1.0"
+type = "stable_diffusion_xl"

@@ -1,214 +1,2002 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpenImageGen UI</title>
-    <style>
-        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f4; }
-        .container { max-width: 800px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input[type="text"], textarea, select, input[type="number"] { width: calc(100% - 22px); padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; }
-        textarea { height: 80px; resize: vertical; }
-        button { background-color: #5cb85c; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
-        button:hover { background-color: #4cae4c; }
-        #status { margin-top: 20px; padding: 10px; background: #e9e9e9; border-radius: 4px; font-family: monospace; white-space: pre-wrap; word-wrap: break-word; }
-        #results { margin-top: 20px; }
-        #results img { max-width: 100%; height: auto; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px; }
-        .progress-bar { width: 100%; background-color: #ddd; border-radius: 4px; margin-top: 5px; height: 20px; overflow: hidden; display: none; }
-        .progress-bar div { width: 0%; height: 100%; background-color: #4caf50; text-align: center; line-height: 20px; color: white; font-size: 12px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="OpenImageGen Studio - AI Image Generation Interface">
+<title>OpenImageGen Studio</title>
+<style>
+/* ==========================================================================
+   Reset & Base
+   ========================================================================== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root[data-theme="dark"] {
+    --bg-primary: #0f1115;
+    --bg-secondary: #161922;
+    --bg-tertiary: #1e212c;
+    --bg-elevated: #252836;
+    --bg-input: #1a1d27;
+    --border: #2d3142;
+    --border-strong: #3a3f52;
+    --text-primary: #e4e6eb;
+    --text-secondary: #9ba1ad;
+    --text-tertiary: #6b7080;
+    --accent: #7c5cff;
+    --accent-hover: #6a48ff;
+    --accent-soft: rgba(124, 92, 255, 0.15);
+    --accent-pink: #ff5cb8;
+    --success: #4ade80;
+    --warning: #fbbf24;
+    --error: #f87171;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
+    --gradient-accent: linear-gradient(135deg, #7c5cff 0%, #ff5cb8 100%);
+}
+
+html, body { height: 100%; }
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                 "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow: hidden;
+}
+
+button { font-family: inherit; }
+
+/* ==========================================================================
+   Layout
+   ========================================================================== */
+.app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+.app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 24px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    z-index: 50;
+}
+
+.app-main {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    flex: 1;
+    min-height: 0;
+}
+
+@media (max-width: 980px) {
+    .app-main { grid-template-columns: 1fr; }
+}
+
+/* ==========================================================================
+   Header
+   ========================================================================== */
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo-mark {
+    width: 38px;
+    height: 38px;
+    background: var(--gradient-accent);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    box-shadow: 0 4px 14px rgba(124, 92, 255, 0.35);
+    flex-shrink: 0;
+}
+
+.logo h1 {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+}
+
+.logo-tag {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-tertiary);
+    margin-left: 4px;
+}
+
+.logo-sub {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    line-height: 1.2;
+    margin-top: 2px;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.icon-button {
+    width: 34px;
+    height: 34px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.icon-button:hover {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    border-color: var(--border-strong);
+}
+
+.status-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    transition: all 0.15s ease;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-tertiary);
+    flex-shrink: 0;
+}
+
+.status-pill.online { color: var(--success); border-color: rgba(74, 222, 128, 0.3); }
+.status-pill.online .status-dot {
+    background: var(--success);
+    box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.2);
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.status-pill.offline { color: var(--error); border-color: rgba(248, 113, 113, 0.3); }
+.status-pill.offline .status-dot { background: var(--error); }
+
+.status-pill.connecting { color: var(--warning); }
+
+@keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.2); }
+    50%      { box-shadow: 0 0 0 6px rgba(74, 222, 128, 0.05); }
+}
+
+/* ==========================================================================
+   Controls Panel
+   ========================================================================== */
+.controls-panel {
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 20px 22px 32px;
+}
+
+@media (max-width: 980px) {
+    .controls-panel {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        max-height: 50vh;
+    }
+}
+
+.panel-section {
+    margin-bottom: 22px;
+}
+
+.panel-section h2 {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-tertiary);
+    margin-bottom: 12px;
+}
+
+/* Form elements */
+.form-group {
+    margin-bottom: 14px;
+}
+
+.form-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.form-label .hint {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    font-weight: 400;
+}
+
+input[type="text"],
+input[type="number"],
+textarea,
+select {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-family: inherit;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+    background: var(--bg-tertiary);
+}
+
+input::placeholder, textarea::placeholder {
+    color: var(--text-tertiary);
+}
+
+textarea {
+    resize: vertical;
+    min-height: 76px;
+    line-height: 1.5;
+}
+
+select {
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239ba1ad' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 16px;
+    padding-right: 36px;
+    appearance: none;
+}
+
+/* Slider + number combos */
+.slider-row {
+    display: grid;
+    grid-template-columns: 1fr 70px;
+    gap: 10px;
+    align-items: center;
+}
+
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    background: var(--bg-input);
+    border-radius: 3px;
+    outline: none;
+    border: 1px solid var(--border);
+    padding: 0;
+    cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(124, 92, 255, 0.4);
+    transition: transform 0.1s;
+}
+input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+
+input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 6px rgba(124, 92, 255, 0.4);
+}
+
+input[type="range"].slider-mini {
+    height: 4px;
+}
+input[type="range"].slider-mini::-webkit-slider-thumb { width: 14px; height: 14px; }
+input[type="range"].slider-mini::-moz-range-thumb     { width: 14px; height: 14px; }
+
+/* Preset buttons */
+.preset-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.preset-btn {
+    padding: 5px 10px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.preset-btn:hover {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    border-color: var(--border-strong);
+}
+
+.preset-btn.active {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+/* Dimension row */
+.dim-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.swap-btn {
+    width: 32px;
+    height: 32px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    align-self: end;
+    margin-bottom: 1px;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.swap-btn:hover {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+}
+
+/* Number + button group */
+.num-with-btns {
+    display: grid;
+    grid-template-columns: 1fr 32px 32px;
+    gap: 6px;
+    align-items: center;
+}
+
+.btn-mini {
+    height: 32px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    transition: all 0.15s;
+}
+
+.btn-mini:hover:not(:disabled) {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+}
+
+.btn-mini:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.btn-mini.active {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+/* Model info card */
+.model-info {
+    margin-top: 8px;
+    padding: 10px 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    line-height: 1.5;
+    display: none;
+}
+
+.model-info.has-data { display: block; }
+
+.model-info-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 2px 0;
+}
+
+.model-info-label {
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 10px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.model-info-name {
+    color: var(--text-secondary);
+    text-align: right;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 10.5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Generate button */
+.generate-btn {
+    width: 100%;
+    padding: 13px;
+    background: var(--gradient-accent);
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+    box-shadow: 0 4px 14px rgba(124, 92, 255, 0.3);
+    margin-top: 24px;
+}
+
+.generate-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(124, 92, 255, 0.4);
+}
+
+.generate-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.generate-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.generate-btn .spinner {
+    display: none;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+.generate-btn.loading .spinner { display: block; }
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.kbd-hint {
+    margin-top: 10px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-tertiary);
+}
+
+kbd {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-family: ui-monospace, monospace;
+    font-size: 10px;
+    color: var(--text-secondary);
+}
+
+/* ==========================================================================
+   Content / Preview Area
+   ========================================================================== */
+.content-area {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.preview-wrapper {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.preview-stage {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    min-height: 320px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.placeholder {
+    text-align: center;
+    color: var(--text-tertiary);
+    padding: 40px 24px;
+    max-width: 340px;
+}
+
+.placeholder-icon {
+    font-size: 56px;
+    margin-bottom: 14px;
+    opacity: 0.35;
+}
+
+.placeholder h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.placeholder p {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    line-height: 1.5;
+}
+
+.placeholder.error .placeholder-icon { color: var(--error); opacity: 0.7; }
+
+.retry-btn {
+    margin-top: 18px;
+    padding: 8px 16px;
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.retry-btn:hover { background: var(--accent); color: white; }
+
+.preview-image {
+    max-width: 100%;
+    max-height: 65vh;
+    display: block;
+    border-radius: 8px;
+}
+
+.preview-overlay {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    gap: 6px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.preview-stage:hover .preview-overlay { opacity: 1; }
+
+.action-btn {
+    padding: 7px 12px;
+    background: rgba(15, 17, 21, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--border-strong);
+    border-radius: 7px;
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: background 0.15s;
+}
+
+.action-btn:hover { background: var(--bg-elevated); }
+
+.image-meta {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 14px 18px;
+    background: linear-gradient(to top, rgba(15, 17, 21, 0.95), transparent);
+    font-size: 11px;
+    color: var(--text-tertiary);
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+}
+
+.preview-stage.has-image:hover .image-meta { opacity: 1; }
+
+.image-meta-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.image-meta-row span span { color: var(--text-secondary); }
+
+/* Progress */
+.progress-container {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 16px 20px 20px;
+    background: linear-gradient(to top, rgba(15, 17, 21, 0.98) 60%, transparent);
+}
+
+.progress-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.progress-percent {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 6px;
+    background: var(--bg-tertiary);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--gradient-accent);
+    transition: width 0.4s ease;
+    border-radius: 3px;
+    box-shadow: 0 0 8px rgba(124, 92, 255, 0.5);
+}
+
+/* Batch carousel */
+.batch-carousel {
+    display: flex;
+    gap: 12px;
+    padding: 12px;
+    max-width: 100%;
+    overflow-x: auto;
+    align-items: center;
+}
+
+.batch-image {
+    max-height: 60vh;
+    max-width: 100%;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.15s;
+}
+
+.batch-image:hover { transform: scale(1.02); }
+
+.batch-thumbs {
+    display: flex;
+    gap: 8px;
+    padding: 0 12px 12px;
+    overflow-x: auto;
+}
+
+.batch-thumb {
+    width: 64px;
+    height: 64px;
+    border-radius: 6px;
+    object-fit: cover;
+    cursor: pointer;
+    opacity: 0.6;
+    border: 2px solid transparent;
+    transition: all 0.15s;
+    flex-shrink: 0;
+}
+
+.batch-thumb:hover { opacity: 0.9; }
+.batch-thumb.active { opacity: 1; border-color: var(--accent); }
+
+/* ==========================================================================
+   Gallery
+   ========================================================================== */
+.gallery-section h2 {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.gallery-clear {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-tertiary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-transform: none;
+    letter-spacing: 0;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.15s;
+}
+
+.gallery-clear:hover {
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
+}
+
+.gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+}
+
+.gallery-item {
+    position: relative;
+    aspect-ratio: 1;
+    background: var(--bg-tertiary);
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: border-color 0.15s, transform 0.15s;
+}
+
+.gallery-item:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+}
+
+.gallery-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.gallery-item-overlay {
+    position: absolute;
+    inset: 0;
+    padding: 10px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.92) 50%, transparent);
+    opacity: 0;
+    transition: opacity 0.15s;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+}
+
+.gallery-item:hover .gallery-item-overlay { opacity: 1; }
+
+.gallery-item-prompt {
+    font-size: 11px;
+    color: var(--text-primary);
+    font-weight: 500;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.gallery-item-meta {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    margin-top: 4px;
+}
+
+.gallery-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-tertiary);
+    font-size: 13px;
+    background: var(--bg-secondary);
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+}
+
+/* ==========================================================================
+   Modal
+   ========================================================================== */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    padding: 24px;
+}
+
+.modal {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    max-width: 520px;
+    width: 100%;
+    max-height: 85vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow-lg);
+    animation: modalIn 0.2s ease;
+}
+
+@keyframes modalIn {
+    from { opacity: 0; transform: scale(0.96); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.modal-header h2 {
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 18px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.15s;
+}
+
+.modal-close:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+}
+
+.info-row:last-child { border-bottom: none; }
+
+.info-row > span:first-child {
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
+}
+
+.info-row > span:last-child {
+    color: var(--text-primary);
+    text-align: right;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.info-row .path {
+    font-size: 11px;
+    max-width: 320px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.info-section {
+    margin-top: 18px;
+    margin-bottom: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-tertiary);
+}
+
+.info-list {
+    list-style: none;
+    padding: 0;
+}
+
+.info-list li {
+    padding: 6px 0;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.info-list code {
+    background: var(--bg-tertiary);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    color: var(--accent);
+}
+
+/* ==========================================================================
+   Toasts
+   ========================================================================== */
+.toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 8px;
+    z-index: 300;
+    pointer-events: none;
+    max-width: calc(100vw - 48px);
+}
+
+.toast {
+    padding: 12px 16px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-strong);
+    border-radius: 9px;
+    color: var(--text-primary);
+    font-size: 13px;
+    box-shadow: var(--shadow-lg);
+    animation: toastIn 0.25s ease;
+    pointer-events: auto;
+    max-width: 360px;
+    border-left-width: 3px;
+}
+
+.toast.success { border-left-color: var(--success); }
+.toast.error   { border-left-color: var(--error); }
+.toast.info    { border-left-color: var(--accent); }
+.toast.warning { border-left-color: var(--warning); }
+
+.toast.removing {
+    animation: toastOut 0.25s ease forwards;
+}
+
+@keyframes toastIn {
+    from { opacity: 0; transform: translateX(120%); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes toastOut {
+    from { opacity: 1; transform: translateX(0); }
+    to   { opacity: 0; transform: translateX(120%); }
+}
+
+/* ==========================================================================
+   Scrollbars
+   ========================================================================== */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb {
+    background: var(--bg-tertiary);
+    border-radius: 5px;
+    border: 2px solid var(--bg-primary);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--bg-elevated); }
+
+/* ==========================================================================
+   Responsive tweaks
+   ========================================================================== */
+@media (max-width: 640px) {
+    .app-header { padding: 10px 16px; }
+    .preview-wrapper { padding: 16px; gap: 16px; }
+    .controls-panel { padding: 16px; }
+    .gallery-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+}
+</style>
 </head>
 <body>
-    <div class="container">
-        <h1>OpenImageGen</h1>
-        <form id="genForm">
-            <label for="prompt">Prompt:</label>
-            <textarea id="prompt" name="prompt" required>A futuristic cityscape at sunset</textarea>
+<div class="app">
 
-            <label for="negative_prompt">Negative Prompt:</label>
-            <textarea id="negative_prompt" name="negative_prompt">blurry, low quality, text, watermark</textarea>
-
-            <label for="model_name">Model:</label>
-            <select id="model_name" name="model_name"></select>
-
-            <label for="width">Width:</label>
-            <input type="number" id="width" name="width" placeholder="e.g., 512 (default)">
-
-            <label for="height">Height:</label>
-            <input type="number" id="height" name="height" placeholder="e.g., 512 (default)">
-
-            <label for="steps">Inference Steps:</label>
-            <input type="number" id="steps" name="steps" placeholder="e.g., 50 (default)">
-
-            <label for="guidance_scale">Guidance Scale (CFG):</label>
-            <input type="number" id="guidance_scale" name="guidance_scale" step="0.1" placeholder="e.g., 7.5 (default)">
-
-            <label for="num_images_per_prompt">Number of Images:</label>
-            <input type="number" id="num_images_per_prompt" name="num_images_per_prompt" value="1" min="1">
-
-            <label for="seed">Seed (-1 for random):</label>
-            <input type="number" id="seed" name="seed" value="-1">
-
-            <button type="submit">Generate Image</button>
-        </form>
-
-        <div id="status">Status messages will appear here...</div>
-        <div class="progress-bar" id="progressBar"><div id="progressIndicator">0%</div></div>
-        <div id="results"></div>
+<header class="app-header">
+    <div class="logo">
+        <div class="logo-mark">✨</div>
+        <div>
+            <h1>OpenImageGen<span class="logo-tag">Studio</span></h1>
+            <div class="logo-sub" id="logoSub">Connecting...</div>
+        </div>
     </div>
+    <div class="header-actions">
+        <button class="icon-button" id="infoBtn" title="Service information" aria-label="Service information">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+        </button>
+        <div class="status-pill connecting" id="statusPill" role="status">
+            <span class="status-dot"></span>
+            <span id="statusText">Connecting</span>
+        </div>
+    </div>
+</header>
 
-    <script>
-        const form = document.getElementById('genForm');
-        const statusDiv = document.getElementById('status');
-        const resultsDiv = document.getElementById('results');
-        const modelSelect = document.getElementById('model_name');
-        const progressBar = document.getElementById('progressBar');
-        const progressIndicator = document.getElementById('progressIndicator');
-        let currentJobId = null;
-        let statusInterval = null;
+<main class="app-main">
 
-        // Fetch available models on load
-        fetch('/models')
-            .then(response => response.json())
-            .then(data => {
-                if (data.available_models && data.available_models.length > 0) {
-                    data.available_models.forEach(model => {
-                        const option = document.createElement('option');
-                        option.value = model;
-                        option.textContent = model;
-                        modelSelect.appendChild(option);
-                    });
-                    // Optionally select the default model
-                    fetch('/health').then(r => r.json()).then(h => {
-                        if (h.default_model) modelSelect.value = h.default_model;
-                    });
-                } else {
-                     modelSelect.innerHTML = '<option value="">No models configured</option>';
-                }
-            })
-            .catch(error => {
-                statusDiv.textContent = 'Error fetching models: ' + error;
-                console.error('Error fetching models:', error);
-                 modelSelect.innerHTML = '<option value="">Error loading models</option>';
-            });
+    <aside class="controls-panel">
+        <form id="genForm" autocomplete="off">
 
-        form.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            clearStatusCheck(); // Stop previous checks if any
-            resultsDiv.innerHTML = ''; // Clear previous results
-            statusDiv.textContent = 'Submitting job...';
-            progressBar.style.display = 'none';
-            progressIndicator.style.width = '0%';
-            progressIndicator.textContent = '0%';
+            <section class="panel-section">
+                <h2>Prompt</h2>
+                <div class="form-group">
+                    <label class="form-label" for="prompt">
+                        <span>Prompt</span>
+                        <span class="hint"><span id="promptCount">0</span> chars</span>
+                    </label>
+                    <textarea id="prompt" placeholder="A photorealistic portrait of a cyberpunk cat, neon lights, detailed, 8k"
+                              rows="3" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="negative_prompt">Negative prompt</label>
+                    <textarea id="negative_prompt"
+                              placeholder="blurry, low quality, distorted, watermark"
+                              rows="2"></textarea>
+                </div>
+            </section>
 
+            <section class="panel-section">
+                <h2>Model</h2>
+                <div class="form-group">
+                    <select id="model_name" aria-label="Model selection">
+                        <option value="">Loading models...</option>
+                    </select>
+                    <div class="model-info" id="modelInfo"></div>
+                </div>
+            </section>
 
-            const formData = new FormData(form);
-            const data = {};
-            formData.forEach((value, key) => {
-                // Convert empty strings for numbers to null, handle seed -1
-                if (['width', 'height', 'steps', 'num_images_per_prompt'].includes(key)) {
-                    data[key] = value === '' ? null : parseInt(value, 10);
-                } else if (key === 'guidance_scale') {
-                     data[key] = value === '' ? null : parseFloat(value);
-                } else if (key === 'seed') {
-                    data[key] = value === '-1' || value === '' ? null : parseInt(value, 10);
-                } else if (value !== '') { // Only include non-empty strings
-                     data[key] = value;
-                }
-            });
-             // Explicitly add model if selected, otherwise backend uses default
-            if (modelSelect.value) {
-                data['model_name'] = modelSelect.value;
-            }
+            <section class="panel-section">
+                <h2>Dimensions</h2>
+                <div class="preset-row" id="dimensionPresets">
+                    <button type="button" class="preset-btn" data-w="512" data-h="512">512 · SD1.5</button>
+                    <button type="button" class="preset-btn" data-w="768" data-h="768">768 · SD1.5</button>
+                    <button type="button" class="preset-btn" data-w="1024" data-h="1024">1024 · SDXL</button>
+                    <button type="button" class="preset-btn" data-w="1024" data-h="576">16:9</button>
+                    <button type="button" class="preset-btn" data-w="576" data-h="1024">9:16</button>
+                    <button type="button" class="preset-btn" data-w="832" data-h="1216">2:3</button>
+                </div>
+                <div class="dim-row">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label" for="width">Width</label>
+                        <input type="number" id="width" min="64" max="2048" step="8" value="512">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label" for="height">Height</label>
+                        <input type="number" id="height" min="64" max="2048" step="8" value="512">
+                    </div>
+                </div>
+            </section>
 
+            <section class="panel-section">
+                <h2>Generation</h2>
 
-            try {
-                const response = await fetch('/submit', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
+                <div class="form-group">
+                    <label class="form-label" for="steps">
+                        <span>Steps</span>
+                        <span class="hint">Denoising iterations</span>
+                    </label>
+                    <div class="slider-row">
+                        <input type="range" id="stepsSlider" min="1" max="100" value="30" class="slider-mini">
+                        <input type="number" id="steps" min="1" max="200" value="30">
+                    </div>
+                </div>
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.detail || `HTTP error! Status: ${response.status}`);
-                }
+                <div class="form-group">
+                    <label class="form-label" for="guidance_scale">
+                        <span>CFG scale</span>
+                        <span class="hint">Prompt adherence</span>
+                    </label>
+                    <div class="slider-row">
+                        <input type="range" id="guidanceSlider" min="1" max="20" step="0.5" value="7.5" class="slider-mini">
+                        <input type="number" id="guidance_scale" min="0" max="30" step="0.5" value="7.5">
+                    </div>
+                </div>
 
-                const result = await response.json();
-                currentJobId = result.job_id;
-                statusDiv.textContent = `Job submitted: ${currentJobId}. Waiting for status updates...`;
-                startStatusCheck(currentJobId);
+                <div class="form-group">
+                    <label class="form-label" for="num_images_per_prompt">
+                        <span>Batch size</span>
+                        <span class="hint">Images per prompt (max 8)</span>
+                    </label>
+                    <input type="number" id="num_images_per_prompt" min="1" max="8" value="1">
+                </div>
 
-            } catch (error) {
-                statusDiv.textContent = 'Error submitting job: ' + error.message;
-                console.error('Error submitting job:', error);
-            }
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label" for="seed">
+                        <span>Seed</span>
+                        <span class="hint">-1 for random</span>
+                    </label>
+                    <div class="num-with-btns">
+                        <input type="number" id="seed" value="-1">
+                        <button type="button" class="btn-mini" id="randomSeed" title="Random seed" aria-label="Random seed">🎲</button>
+                        <button type="button" class="btn-mini" id="useLastSeed" title="Use seed from last generation" aria-label="Use seed from last generation" disabled>♻️</button>
+                    </div>
+                </div>
+            </section>
+
+            <button type="submit" class="generate-btn" id="generateBtn">
+                <span class="spinner" aria-hidden="true"></span>
+                <span class="btn-label">Generate</span>
+            </button>
+
+            <div class="kbd-hint">
+                Press <kbd>Ctrl</kbd>+<kbd>Enter</kbd> to generate
+            </div>
+        </form>
+    </aside>
+
+    <section class="content-area">
+        <div class="preview-wrapper">
+
+            <div class="preview-stage" id="previewStage">
+                <div class="placeholder" id="placeholder">
+                    <div class="placeholder-icon">🎨</div>
+                    <h3>Ready to create</h3>
+                    <p>Enter a prompt and click <strong>Generate</strong> to start. Your image will appear here.</p>
+                </div>
+
+                <div class="progress-container" id="progressContainer" style="display:none;">
+                    <div class="progress-info">
+                        <span id="progressLabel">Initializing…</span>
+                        <span class="progress-percent" id="progressPercent">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill" style="width:0%"></div>
+                    </div>
+                </div>
+
+                <img class="preview-image" id="previewImage" alt="Generated image" style="display:none;">
+
+                <div class="preview-overlay" id="previewOverlay" style="display:none;">
+                    <button class="action-btn" id="downloadBtn" title="Download">
+                        <span>⬇</span><span>Download</span>
+                    </button>
+                    <button class="action-btn" id="copySeedBtn" title="Copy seed">
+                        <span>🎯</span><span>Seed</span>
+                    </button>
+                    <button class="action-btn" id="openImageBtn" title="Open full size">
+                        <span>⤢</span><span>Open</span>
+                    </button>
+                </div>
+
+                <div class="image-meta" id="imageMeta"></div>
+            </div>
+
+            <div class="batch-carousel" id="batchCarousel" style="display:none;"></div>
+            <div class="batch-thumbs" id="batchThumbs" style="display:none;"></div>
+
+            <div class="gallery-section">
+                <h2>
+                    <span>Recent generations</span>
+                    <button class="gallery-clear" id="clearHistoryBtn">Clear</button>
+                </h2>
+                <div class="gallery-grid" id="galleryGrid">
+                    <div class="gallery-empty">No generations yet · Your history will appear here</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</main>
+</div>
+
+<div class="modal-overlay" id="infoModal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
+    <div class="modal" role="document">
+        <div class="modal-header">
+            <h2 id="infoTitle">Service information</h2>
+            <button class="modal-close" id="infoClose" aria-label="Close">✕</button>
+        </div>
+        <div class="modal-body" id="infoBody">Loading…</div>
+    </div>
+</div>
+
+<div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+<script>
+'use strict';
+
+// ============================================================================
+// Constants
+// ============================================================================
+const POLL_INTERVAL_MS    = 1500;
+const HEALTH_RECHECK_MS   = 30000;
+const HISTORY_KEY         = 'oig_history_v1';
+const SETTINGS_KEY        = 'oig_settings_v1';
+const MAX_HISTORY_ITEMS   = 24;
+
+// ============================================================================
+// State
+// ============================================================================
+const state = {
+    models: [],
+    serviceInfo: null,
+    currentJobId: null,
+    pollInterval: null,
+    currentJob: null,
+    lastUsedSeed: null,
+    history: [],
+    settings: {}
+};
+
+// ============================================================================
+// DOM cache
+// ============================================================================
+const els = {};
+
+function cacheDom() {
+    [
+        'statusPill', 'statusText', 'logoSub',
+        'genForm', 'prompt', 'promptCount', 'negative_prompt',
+        'model_name', 'modelInfo',
+        'width', 'height', 'dimensionPresets',
+        'steps', 'stepsSlider', 'guidance_scale', 'guidanceSlider',
+        'num_images_per_prompt', 'seed',
+        'randomSeed', 'useLastSeed',
+        'generateBtn', 'btnLabel',
+        'previewStage', 'placeholder',
+        'progressContainer', 'progressLabel', 'progressPercent', 'progressFill',
+        'previewImage', 'previewOverlay', 'imageMeta',
+        'batchCarousel', 'batchThumbs',
+        'downloadBtn', 'copySeedBtn', 'openImageBtn',
+        'galleryGrid', 'clearHistoryBtn',
+        'infoBtn', 'infoModal', 'infoClose', 'infoBody',
+        'toastContainer'
+    ].forEach(id => { els[id] = document.getElementById(id); });
+}
+
+// ============================================================================
+// Storage helpers
+// ============================================================================
+function loadStorage(key, fallback) {
+    try {
+        const v = localStorage.getItem(key);
+        return v ? JSON.parse(v) : fallback;
+    } catch { return fallback; }
+}
+
+function saveStorage(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); }
+    catch (e) { console.warn('Storage write failed:', e); }
+}
+
+// ============================================================================
+// Utilities
+// ============================================================================
+function showToast(message, type = 'info', duration = 4000) {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    els.toastContainer.appendChild(toast);
+    setTimeout(() => {
+        toast.classList.add('removing');
+        setTimeout(() => toast.remove(), 250);
+    }, duration);
+}
+
+function truncate(str, max = 60) {
+    if (!str) return '';
+    return str.length > max ? str.slice(0, max - 1) + '…' : str;
+}
+
+function timeAgo(ts) {
+    const diff = (Date.now() / 1000) - ts;
+    if (diff < 60)    return 'just now';
+    if (diff < 3600)  return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return `${Math.floor(diff / 86400)}d ago`;
+}
+
+async function copyText(text) {
+    try {
+        await navigator.clipboard.writeText(text);
+        showToast('Copied to clipboard', 'success', 2000);
+    } catch {
+        showToast('Copy failed', 'error', 2000);
+    }
+}
+
+// ============================================================================
+// API
+// ============================================================================
+async function apiGet(path) {
+    const res = await fetch(path);
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
+        throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    return res.json();
+}
+
+async function apiPost(path, body) {
+    const res = await fetch(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
+        throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    return res.json();
+}
+
+async function checkHealth() {
+    try {
+        const data = await apiGet('/health');
+        state.serviceInfo = data;
+        const modelCount = (data.loaded_models || []).length;
+        const jobs = data.active_jobs || 0;
+        setStatus('online', `${data.device} · ${modelCount} model${modelCount !== 1 ? 's' : ''} · ${jobs} job${jobs !== 1 ? 's' : ''}`);
+        els.logoSub.textContent = `${data.dtype} on ${data.device}`;
+        return true;
+    } catch (e) {
+        state.serviceInfo = null;
+        setStatus('offline', 'Service unavailable');
+        els.logoSub.textContent = 'Offline';
+        return false;
+    }
+}
+
+async function loadModels() {
+    try {
+        const data = await apiGet('/models');
+        state.models = data.available_models || [];
+        populateModelSelect();
+        applySettingsToModels();
+        return true;
+    } catch (e) {
+        els.model_name.innerHTML = '<option value="">Failed to load models</option>';
+        showToast('Could not load models', 'error');
+        return false;
+    }
+}
+
+// ============================================================================
+// UI updates
+// ============================================================================
+function setStatus(s, text) {
+    els.statusPill.classList.remove('online', 'offline', 'connecting');
+    els.statusPill.classList.add(s);
+    els.statusText.textContent = text;
+}
+
+function populateModelSelect() {
+    const sel = els.model_name;
+    sel.innerHTML = '';
+
+    if (state.models.length === 0) {
+        sel.innerHTML = '<option value="">No models configured</option>';
+        els.modelInfo.classList.remove('has-data');
+        return;
+    }
+
+    state.models.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.key;
+        opt.textContent = `${m.key} (${m.type})`;
+        opt.dataset.type = m.type;
+        opt.dataset.name = m.name;
+        sel.appendChild(opt);
+    });
+
+    const defaultKey = state.serviceInfo?.default_model;
+    if (defaultKey && state.models.some(m => m.key === defaultKey)) {
+        sel.value = defaultKey;
+    }
+    updateModelInfo();
+}
+
+function updateModelInfo() {
+    const opt = els.model_name.selectedOptions[0];
+    if (!opt || !opt.value) {
+        els.modelInfo.classList.remove('has-data');
+        return;
+    }
+    els.modelInfo.classList.add('has-data');
+    els.modelInfo.innerHTML = `
+        <div class="model-info-row">
+            <span class="model-info-label">Type</span>
+            <span>${opt.dataset.type}</span>
+        </div>
+        <div class="model-info-row">
+            <span class="model-info-label">Repository</span>
+            <span class="model-info-name" title="${opt.dataset.name}">${opt.dataset.name}</span>
+        </div>
+    `;
+}
+
+function updatePromptCount() {
+    els.promptCount.textContent = els.prompt.value.length;
+}
+
+function gatherFormData() {
+    const data = { prompt: els.prompt.value.trim() };
+
+    const neg = els.negative_prompt.value.trim();
+    if (neg) data.negative_prompt = neg;
+
+    const model = els.model_name.value;
+    if (model) data.model_name = model;
+
+    const w = parseInt(els.width.value, 10);
+    if (w && w > 0) data.width = w;
+
+    const h = parseInt(els.height.value, 10);
+    if (h && h > 0) data.height = h;
+
+    const steps = parseInt(els.steps.value, 10);
+    if (steps && steps > 0) data.num_inference_steps = steps;
+
+    const cfg = parseFloat(els.guidance_scale.value);
+    if (cfg && cfg > 0) data.guidance_scale = cfg;
+
+    const n = parseInt(els.num_images_per_prompt.value, 10);
+    if (n && n > 1) data.num_images_per_prompt = n;
+
+    const seed = parseInt(els.seed.value, 10);
+    if (!Number.isNaN(seed) && seed >= 0) data.seed = seed;
+
+    return data;
+}
+
+function saveCurrentSettings() {
+    state.settings = {
+        prompt: els.prompt.value,
+        negative_prompt: els.negative_prompt.value,
+        model_name: els.model_name.value,
+        width: els.width.value,
+        height: els.height.value,
+        steps: els.steps.value,
+        guidance_scale: els.guidance_scale.value,
+        num_images_per_prompt: els.num_images_per_prompt.value,
+        seed: els.seed.value
+    };
+    saveStorage(SETTINGS_KEY, state.settings);
+}
+
+function applySettingsToForm() {
+    const s = state.settings || {};
+    if (s.prompt !== undefined)             els.prompt.value              = s.prompt || '';
+    if (s.negative_prompt !== undefined)    els.negative_prompt.value     = s.negative_prompt || '';
+    if (s.width)                            els.width.value               = s.width;
+    if (s.height)                           els.height.value              = s.height;
+    if (s.steps) {
+        els.steps.value = s.steps;
+        els.stepsSlider.value = Math.min(100, parseInt(s.steps, 10) || 30);
+    }
+    if (s.guidance_scale) {
+        els.guidance_scale.value = s.guidance_scale;
+        els.guidanceSlider.value = Math.min(20, parseFloat(s.guidance_scale) || 7.5);
+    }
+    if (s.num_images_per_prompt)            els.num_images_per_prompt.value = s.num_images_per_prompt;
+    if (s.seed !== undefined && s.seed !== null && s.seed !== '') els.seed.value = s.seed;
+    updatePromptCount();
+}
+
+function applySettingsToModels() {
+    if (state.settings?.model_name && state.models.some(m => m.key === state.settings.model_name)) {
+        els.model_name.value = state.settings.model_name;
+        updateModelInfo();
+    }
+}
+
+function setGenerating(isGen) {
+    els.generateBtn.disabled = isGen;
+    els.generateBtn.classList.toggle('loading', isGen);
+    els.btnLabel.textContent = isGen ? 'Generating…' : 'Generate';
+}
+
+function setStage(stage, message = '') {
+    els.placeholder.style.display        = (stage === 'placeholder' || stage === 'failed') ? 'flex' : 'none';
+    els.progressContainer.style.display  = stage === 'processing' ? 'block' : 'none';
+    els.previewImage.style.display       = stage === 'completed'   ? 'block' : 'none';
+    els.previewOverlay.style.display     = stage === 'completed'   ? 'flex'  : 'none';
+    els.batchCarousel.style.display      = 'none';
+    els.batchThumbs.style.display        = 'none';
+    els.previewStage.classList.toggle('has-image', stage === 'completed');
+
+    if (stage === 'processing') {
+        els.progressLabel.textContent = message || 'Initializing…';
+        els.progressFill.style.width = '0%';
+        els.progressPercent.textContent = '0%';
+    }
+
+    if (stage === 'placeholder') {
+        els.placeholder.classList.remove('error');
+        els.placeholder.innerHTML = `
+            <div class="placeholder-icon">🎨</div>
+            <h3>Ready to create</h3>
+            <p>Enter a prompt and click <strong>Generate</strong> to start. Your image will appear here.</p>
+        `;
+    } else if (stage === 'failed') {
+        els.placeholder.classList.add('error');
+        els.placeholder.innerHTML = `
+            <div class="placeholder-icon">⚠️</div>
+            <h3>Generation failed</h3>
+            <p>${message || 'Unknown error'}</p>
+            <button class="retry-btn" id="retryBtn">Retry</button>
+        `;
+        document.getElementById('retryBtn')?.addEventListener('click', () => {
+            els.genForm.dispatchEvent(new Event('submit', { cancelable: true }));
         });
+    }
+}
 
-        function startStatusCheck(jobId) {
-            progressBar.style.display = 'block'; // Show progress bar
-            statusInterval = setInterval(async () => {
-                try {
-                    const response = await fetch(`/status/${jobId}`);
-                    if (!response.ok) {
-                        // Handle job not found after initial submission (should be rare)
-                        if (response.status === 404) {
-                             statusDiv.textContent = `Job ${jobId} not found.`;
-                             clearStatusCheck();
-                             return;
-                        }
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-                    const jobStatus = await response.json();
+function updateProgress(percent, message) {
+    const p = Math.max(0, Math.min(100, percent || 0));
+    els.progressFill.style.width = `${p}%`;
+    els.progressPercent.textContent = `${Math.round(p)}%`;
+    if (message) els.progressLabel.textContent = message;
+}
 
-                    // Update progress bar
-                    progressIndicator.style.width = `${jobStatus.progress}%`;
-                    progressIndicator.textContent = `${jobStatus.progress}%`;
+function showResult(job) {
+    state.currentJob = job;
+    const urls = job.image_urls || [];
+    if (urls.length === 0) {
+        setStage('failed', job.message || 'No images returned');
+        return;
+    }
 
-                    statusDiv.textContent = `Job ${jobId}: ${jobStatus.status} (${jobStatus.progress}%) - ${jobStatus.message || ''}`;
+    const seedUsed = job.request_details?.seed;
+    state.lastUsedSeed = (seedUsed !== undefined && seedUsed !== null) ? seedUsed : null;
+    els.useLastSeed.disabled = (state.lastUsedSeed === null);
 
+    const firstUrl = urls[0];
+    els.previewImage.src = firstUrl;
+    els.previewImage.style.display = 'block';
+    els.downloadBtn.dataset.url = firstUrl;
+    els.downloadBtn.dataset.filename = `image_${job.job_id}_0.png`;
 
-                    if (jobStatus.status === 'completed') {
-                        clearStatusCheck();
-                        progressBar.style.display = 'none'; // Hide progress bar
-                        if (jobStatus.image_urls && jobStatus.image_urls.length > 0) {
-                            resultsDiv.innerHTML = '<h3>Generated Images:</h3>';
-                            jobStatus.image_urls.forEach(url => {
-                                const img = document.createElement('img');
-                                img.src = url; // FastAPI handles serving the download URL
-                                resultsDiv.appendChild(img);
-                            });
-                        } else {
-                             resultsDiv.textContent = 'Generation completed, but no image URLs found.';
-                        }
-                    } else if (jobStatus.status === 'failed') {
-                        clearStatusCheck();
-                         progressBar.style.display = 'none'; // Hide progress bar
-                        statusDiv.textContent = `Job ${jobId} failed: ${jobStatus.message || 'Unknown error'}`;
-                    }
-                    // Continue polling if pending or processing
+    const rd = job.request_details || {};
+    const metaParts = [];
+    if (rd.model_name) metaParts.push(`<span>Model: <span>${rd.model_name}</span></span>`);
+    if (rd.width && rd.height) metaParts.push(`<span>Size: <span>${rd.width}×${rd.height}</span></span>`);
+    if (rd.num_inference_steps) metaParts.push(`<span>Steps: <span>${rd.num_inference_steps}</span></span>`);
+    if (rd.guidance_scale) metaParts.push(`<span>CFG: <span>${rd.guidance_scale}</span></span>`);
+    if (state.lastUsedSeed !== null) metaParts.push(`<span>Seed: <span>${state.lastUsedSeed}</span></span>`);
+    else metaParts.push(`<span>Seed: <span>random</span></span>`);
+    els.imageMeta.innerHTML = `<div class="image-meta-row">${metaParts.join('')}</div>`;
 
-                } catch (error) {
-                    console.error('Error fetching status:', error);
-                    statusDiv.textContent = `Error fetching status for job ${jobId}: ${error.message}`;
-                    // Optional: Stop polling on persistent errors?
-                    // clearStatusCheck();
-                }
-            }, 2000); // Check every 2 seconds
+    if (urls.length > 1) {
+        els.batchThumbs.style.display = 'flex';
+        els.batchThumbs.innerHTML = '';
+        urls.forEach((url, i) => {
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = `Image ${i}`;
+            img.className = 'batch-thumb' + (i === 0 ? ' active' : '');
+            img.onclick = () => {
+                els.previewImage.src = url;
+                els.previewImage.style.display = 'block';
+                els.downloadBtn.dataset.url = url;
+                els.downloadBtn.dataset.filename = `image_${job.job_id}_${i}.png`;
+                els.batchThumbs.querySelectorAll('.batch-thumb').forEach(t => t.classList.remove('active'));
+                img.classList.add('active');
+            };
+            els.batchThumbs.appendChild(img);
+        });
+    }
+
+    setStage('completed');
+}
+
+function renderGallery() {
+    if (state.history.length === 0) {
+        els.galleryGrid.innerHTML = '<div class="gallery-empty">No generations yet · Your history will appear here</div>';
+        return;
+    }
+    els.galleryGrid.innerHTML = '';
+    state.history.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'gallery-item';
+        div.title = item.prompt;
+        div.innerHTML = `
+            <img src="${item.thumbUrl}" alt="${truncate(item.prompt, 30)}" loading="lazy">
+            <div class="gallery-item-overlay">
+                <div class="gallery-item-prompt">${truncate(item.prompt, 60)}</div>
+                <div class="gallery-item-meta">${item.imageCount} img · ${timeAgo(item.timestamp)}</div>
+            </div>
+        `;
+        div.onclick = () => loadHistoryItem(item);
+        els.galleryGrid.appendChild(div);
+    });
+}
+
+async function loadHistoryItem(item) {
+    try {
+        const job = await apiGet(`/status/${item.jobId}`);
+        if (job.image_urls && job.image_urls.length > 0) {
+            showResult(job);
+            document.querySelector('.preview-wrapper').scrollTo({ top: 0, behavior: 'smooth' });
+            showToast('Loaded from history', 'info', 2000);
+        } else {
+            showToast('These images have expired', 'warning');
         }
+    } catch (e) {
+        showToast('Could not load job: ' + e.message, 'error');
+    }
+}
 
-        function clearStatusCheck() {
-            if (statusInterval) {
-                clearInterval(statusInterval);
-                statusInterval = null;
+function addToHistory(job) {
+    const entry = {
+        jobId: job.job_id,
+        prompt: job.request_details?.prompt || '(no prompt)',
+        timestamp: job.created_at,
+        imageCount: job.image_urls?.length || 0,
+        thumbUrl: job.image_urls?.[0] || ''
+    };
+    state.history = state.history.filter(h => h.jobId !== entry.jobId);
+    state.history.unshift(entry);
+    state.history = state.history.slice(0, MAX_HISTORY_ITEMS);
+    saveStorage(HISTORY_KEY, state.history);
+    renderGallery();
+}
+
+// ============================================================================
+// Generation flow
+// ============================================================================
+async function startGeneration() {
+    if (state.currentJobId) {
+        showToast('A generation is already running', 'info', 2000);
+        return;
+    }
+
+    const data = gatherFormData();
+    if (!data.prompt) {
+        showToast('Please enter a prompt', 'error');
+        els.prompt.focus();
+        return;
+    }
+    if (data.num_images_per_prompt && data.num_images_per_prompt > 8) {
+        showToast('Maximum 8 images per prompt', 'error');
+        return;
+    }
+
+    saveCurrentSettings();
+    setGenerating(true);
+    setStage('processing', 'Submitting job…');
+
+    try {
+        const { job_id } = await apiPost('/submit', data);
+        state.currentJobId = job_id;
+        setStage('processing', 'Queued for generation…');
+        startPolling(job_id);
+    } catch (e) {
+        showToast('Submission failed: ' + e.message, 'error');
+        setStage('placeholder');
+        setGenerating(false);
+    }
+}
+
+function startPolling(jobId) {
+    if (state.pollInterval) clearInterval(state.pollInterval);
+
+    const tick = async () => {
+        try {
+            const job = await apiGet(`/status/${jobId}`);
+
+            if (job.status === 'completed') {
+                clearInterval(state.pollInterval);
+                state.pollInterval = null;
+                state.currentJobId = null;
+                setGenerating(false);
+                showResult(job);
+                addToHistory(job);
+                showToast('Generation complete', 'success');
+            } else if (job.status === 'failed') {
+                clearInterval(state.pollInterval);
+                state.pollInterval = null;
+                state.currentJobId = null;
+                setGenerating(false);
+                setStage('failed', job.message || 'Generation failed');
+                showToast('Generation failed', 'error');
+            } else {
+                updateProgress(job.progress || 0, job.message || 'Generating…');
             }
-             // Reset progress bar if check is cleared before completion/failure
-            // progressBar.style.display = 'none';
-            // progressIndicator.style.width = '0%';
-            // progressIndicator.textContent = '0%';
+        } catch (e) {
+            console.error('Poll error:', e);
         }
+    };
 
-    </script>
+    state.pollInterval = setInterval(tick, POLL_INTERVAL_MS);
+    tick();
+}
+
+// ============================================================================
+// Info modal
+// ============================================================================
+function showInfoModal() {
+    const s = state.serviceInfo;
+    if (!s) {
+        els.infoBody.innerHTML = '<p style="color:var(--text-tertiary)">Service info unavailable. Backend offline?</p>';
+    } else {
+        const models = (s.loaded_models || []).length
+            ? (s.loaded_models || []).map(m => `<li><code>${m}</code></li>`).join('')
+            : '<li style="color:var(--text-tertiary)">No models loaded</li>';
+        const types = (s.available_model_types || []).map(t => `<li><code>${t}</code></li>`).join('');
+
+        els.infoBody.innerHTML = `
+            <div class="info-row"><span>Device</span><span>${s.device}</span></div>
+            <div class="info-row"><span>Data type</span><span>${s.dtype}</span></div>
+            <div class="info-row"><span>Force GPU</span><span>${s.force_gpu}</span></div>
+            <div class="info-row"><span>Use GPU</span><span>${s.use_gpu}</span></div>
+            <div class="info-row"><span>Default model</span><span>${s.default_model || '(none)'}</span></div>
+            <div class="info-row"><span>Active jobs</span><span>${s.active_jobs}</span></div>
+            <div class="info-row"><span>Output</span><span class="path" title="${s.output_folder}">${s.output_folder}</span></div>
+            <div class="info-row"><span>Cache</span><span class="path" title="${s.model_cache_dir}">${s.model_cache_dir}</span></div>
+            <div class="info-section">Loaded models</div>
+            <ul class="info-list">${models}</ul>
+            <div class="info-section">Available adapters</div>
+            <ul class="info-list">${types}</ul>
+        `;
+    }
+    els.infoModal.style.display = 'flex';
+}
+
+function closeInfoModal() {
+    els.infoModal.style.display = 'none';
+}
+
+// ============================================================================
+// Event bindings
+// ============================================================================
+function bindEvents() {
+    els.genForm.addEventListener('submit', e => {
+        e.preventDefault();
+        startGeneration();
+    });
+
+    els.prompt.addEventListener('input', updatePromptCount);
+
+    els.model_name.addEventListener('change', () => {
+        updateModelInfo();
+        saveCurrentSettings();
+    });
+
+    // Dimension presets
+    els.dimensionPresets.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            els.width.value = btn.dataset.w;
+            els.height.value = btn.dataset.h;
+            els.dimensionPresets.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            saveCurrentSettings();
+        });
+    });
+
+    // Mark active dimension preset
+    const refreshDimActive = () => {
+        const w = parseInt(els.width.value, 10);
+        const h = parseInt(els.height.value, 10);
+        els.dimensionPresets.querySelectorAll('.preset-btn').forEach(b => {
+            b.classList.toggle('active',
+                parseInt(b.dataset.w, 10) === w && parseInt(b.dataset.h, 10) === h);
+        });
+    };
+    els.width.addEventListener('input', refreshDimActive);
+    els.height.addEventListener('input', refreshDimActive);
+    refreshDimActive();
+
+    // Slider syncing (slider <-> number)
+    els.stepsSlider.addEventListener('input', () => {
+        els.steps.value = els.stepsSlider.value;
+        saveCurrentSettings();
+    });
+    els.steps.addEventListener('input', () => {
+        const v = parseInt(els.steps.value, 10);
+        if (!Number.isNaN(v) && v >= 1 && v <= 100) {
+            els.stepsSlider.value = v;
+        }
+        saveCurrentSettings();
+    });
+    els.guidanceSlider.addEventListener('input', () => {
+        els.guidance_scale.value = els.guidanceSlider.value;
+        saveCurrentSettings();
+    });
+    els.guidance_scale.addEventListener('input', () => {
+        const v = parseFloat(els.guidance_scale.value);
+        if (!Number.isNaN(v) && v >= 1 && v <= 20) {
+            els.guidanceSlider.value = v;
+        }
+        saveCurrentSettings();
+    });
+
+    // Save settings on any change
+    ['negative_prompt', 'num_images_per_prompt', 'seed'].forEach(id => {
+        els[id].addEventListener('input', saveCurrentSettings);
+    });
+    ['width', 'height'].forEach(id => {
+        els[id].addEventListener('input', saveCurrentSettings);
+    });
+
+    // Random / reuse seed
+    els.randomSeed.addEventListener('click', () => {
+        const s = Math.floor(Math.random() * 2147483647);
+        els.seed.value = s;
+        saveCurrentSettings();
+        showToast(`Seed: ${s}`, 'info', 1800);
+    });
+
+    els.useLastSeed.addEventListener('click', () => {
+        if (state.lastUsedSeed !== null) {
+            els.seed.value = state.lastUsedSeed;
+            saveCurrentSettings();
+            showToast(`Reusing seed: ${state.lastUsedSeed}`, 'info', 1800);
+        }
+    });
+
+    // Preview actions
+    els.downloadBtn.addEventListener('click', () => {
+        const url = els.downloadBtn.dataset.url;
+        if (!url) return;
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = els.downloadBtn.dataset.filename || 'image.png';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    });
+
+    els.copySeedBtn.addEventListener('click', () => {
+        if (state.lastUsedSeed !== null) {
+            copyText(String(state.lastUsedSeed));
+        } else {
+            showToast('No fixed seed was used for this image', 'info', 2000);
+        }
+    });
+
+    els.openImageBtn.addEventListener('click', () => {
+        const url = els.downloadBtn.dataset.url;
+        if (url) window.open(url, '_blank');
+    });
+
+    // Gallery
+    els.clearHistoryBtn.addEventListener('click', () => {
+        if (state.history.length === 0) {
+            showToast('History is already empty', 'info', 1500);
+            return;
+        }
+        if (!confirm(`Clear all ${state.history.length} history item${state.history.length !== 1 ? 's' : ''}?`)) return;
+        state.history = [];
+        saveStorage(HISTORY_KEY, state.history);
+        renderGallery();
+        showToast('History cleared', 'success');
+    });
+
+    // Info modal
+    els.infoBtn.addEventListener('click', showInfoModal);
+    els.infoClose.addEventListener('click', closeInfoModal);
+    els.infoModal.addEventListener('click', e => {
+        if (e.target === els.infoModal) closeInfoModal();
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', e => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            if (!els.generateBtn.disabled) {
+                els.genForm.dispatchEvent(new Event('submit', { cancelable: true }));
+            }
+        }
+        if (e.key === 'Escape' && els.infoModal.style.display === 'flex') {
+            closeInfoModal();
+        }
+    });
+}
+
+// ============================================================================
+// Init
+// ============================================================================
+async function init() {
+    cacheDom();
+    bindEvents();
+
+    state.history = loadStorage(HISTORY_KEY, []);
+    state.settings = loadStorage(SETTINGS_KEY, {});
+    renderGallery();
+    applySettingsToForm();
+
+    const ok = await checkHealth();
+    if (ok) {
+        await loadModels();
+        // Apply model after options populated
+        if (state.settings?.model_name && state.models.some(m => m.key === state.settings.model_name)) {
+            els.model_name.value = state.settings.model_name;
+            updateModelInfo();
+        }
+    }
+
+    // Periodic health re-check
+    setInterval(async () => {
+        const healthy = await checkHealth();
+        if (healthy && els.previewImage.style.display === 'none' && state.history.length === 0) {
+            els.logoSub.textContent = `${state.serviceInfo.dtype} on ${state.serviceInfo.device}`;
+        }
+    }, HEALTH_RECHECK_MS);
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
+</script>
 </body>
 </html>
