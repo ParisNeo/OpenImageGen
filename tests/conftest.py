@@ -37,7 +37,15 @@ def _isolate_registry():
 
 @pytest.fixture
 def temp_output_dir(tmp_path: Path) -> Path:
-    """Provide an isolated output directory for a single test."""
+    """Provide an isolated, per-test output directory.
+
+    Wraps pytest's built-in ``tmp_path`` fixture to create a dedicated
+    ``outputs`` subdirectory. This ensures each test gets a clean,
+    filesystem-backed location for generated images and artifacts,
+    which is automatically cleaned up by pytest at the end of the
+    test session. Downstream fixtures (e.g. ``minimal_config``) depend
+    on this for their ``output_folder`` and ``model_cache_dir`` paths.
+    """
     out = tmp_path / "outputs"
     out.mkdir(parents=True, exist_ok=True)
     return out
