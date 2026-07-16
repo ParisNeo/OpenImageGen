@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ImageGenerationRequest(BaseModel):
@@ -30,11 +30,19 @@ class ImageGenerationRequest(BaseModel):
         None, gt=0, le=8, description="Number of images per prompt"
     )
 
+    @field_validator("width", "height")
+    @classmethod
+    def validate_dimension_divisible_by_8(cls, v: Optional[int]) -> Optional[int]:
+        """Ensure image dimensions are divisible by 8, as required by diffusion model architectures."""
+        if v is not None and v % 8 != 0:
+            raise ValueError("Image dimensions must be divisible by 8 for diffusion models.")
+        return v
+
 
 class JobStatus(BaseModel):
     """Status of a generation job, polled via GET /status/{job_id}."""
     job_id: str = Field(..., description="Unique job identifier")
-    status: str = Field(..., description="pending | processing | completed | failed")
+    status: str = Field(..., description="pending | processing | completed | failed | cancelled")
     progress: int = Field(0, ge=0, le=100, description="Generation progress percentage")
     message: Optional[str] = Field(None, description="Human-readable status message")
     image_urls: Optional[List[str]] = Field(None, description="Download URLs (populated on completion)")

@@ -79,3 +79,6 @@ class FluxAdapter(BaseModelAdapter):
 
     def get_default_params(self) -> dict:
         return {"guidance_scale": 0.0, "num_inference_steps": 4, "num_images_per_prompt": 1}
+
+    def supports_negative_prompt(self) -> bool:
+        return False

@@ -83,5 +83,9 @@ class BaseModelAdapter(ABC):
     def get_default_params(self) -> Dict[str, Any]:
         return {"guidance_scale": 7.5, "num_inference_steps": 50, "num_images_per_prompt": 1}
 
+    def supports_negative_prompt(self) -> bool:
+        """Return True if this adapter's pipeline natively supports negative prompts."""
+        return True
+
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} type={self.type_name!r}>"

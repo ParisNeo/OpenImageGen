@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -93,6 +94,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 def _require_service() -> ImageGenService:
     """Return the initialized service or raise 503."""
@@ -127,25 +136,34 @@ async def health_check() -> Dict:
         "active_jobs": svc.jobs.count(),
         "output_folder": str(svc.output_folder.resolve()),
         "model_cache_dir": str(svc.model_cache_dir.resolve()),
+        "memory_info": svc.get_memory_info(),
     }
 
 
 @app.get("/models")
 async def get_models() -> Dict:
-    """List configured model keys with their adapter types."""
+    """List configured model keys with their adapter types and capabilities."""
     svc = _require_service()
-    return {
-        "available_models": [
-            {
-                "key": key,
-                "type": info.get("type", "unknown"),
-                "name": info.get("name", ""),
-                "loaded": key in svc.pipelines,
-                "downloaded": svc.download_status.get(key) == "completed",
-            }
-            for key, info in svc.models_config.items()
-        ]
-    }
+    models = []
+    for key, info in svc.models_config.items():
+        model_type = info.get("type", "unknown")
+        adapter_cls = svc.registry.try_get(model_type)
+        supports_neg = True
+        if adapter_cls is not None:
+            try:
+                tmp_adapter = adapter_cls()
+                supports_neg = tmp_adapter.supports_negative_prompt()
+            except Exception:
+                pass
+        models.append({
+            "key": key,
+            "type": model_type,
+            "name": info.get("name", ""),
+            "loaded": key in svc.pipelines,
+            "downloaded": svc.download_status.get(key) == "completed",
+            "supports_negative_prompt": supports_neg,
+        })
+    return {"available_models": models}
 
 
 @app.post("/preload")
@@ -157,9 +175,60 @@ async def preload_models(
     svc = _require_service()
     if svc.is_downloading:
         raise HTTPException(status_code=409, detail="A download operation is already in progress.")
-    
-    background_tasks.add_task(svc.preload_models, model_keys)
-    return {"status": "preloading_started", "models": model_keys or list(svc.models_config.keys())}
+
+    target_keys = model_keys or list(svc.models_config.keys())
+    invalid_keys = [k for k in target_keys if k not in svc.models_config]
+    if invalid_keys:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown model key(s): {', '.join(invalid_keys)}. "
+                   f"Available: {', '.join(svc.models_config.keys())}",
+        )
+
+    background_tasks.add_task(svc.preload_models, target_keys)
+    return {"status": "preloading_started", "models": target_keys}
+
+
+@app.post("/models/{model_key}/load")
+async def load_model_endpoint(model_key: str):
+    """Explicitly load a model pipeline into memory."""
+    svc = _require_service()
+    if model_key not in svc.models_config:
+        raise HTTPException(status_code=404, detail=f"Model '{model_key}' is not configured.")
+    if model_key in svc.pipelines:
+        return {"status": "already_loaded", "model": model_key}
+    success = svc.load_model(model_key)
+    if not success:
+        raise HTTPException(status_code=500, detail=f"Failed to load model '{model_key}'.")
+    return {"status": "loaded", "model": model_key}
+
+
+@app.post("/models/{model_key}/unload")
+async def unload_model_endpoint(model_key: str):
+    """Unload a model pipeline from memory to free resources."""
+    svc = _require_service()
+    if not svc.unload_model(model_key):
+        raise HTTPException(status_code=404, detail=f"Model '{model_key}' is not loaded.")
+    return {"status": "unloaded", "model": model_key}
+
+
+@app.get("/memory")
+async def get_memory_info():
+    """Return current memory and resource usage information."""
+    svc = _require_service()
+    return svc.get_memory_info()
+
+
+@app.post("/cancel/{job_id}")
+async def cancel_job(job_id: str):
+    """Cancel a pending or processing job."""
+    svc = _require_service()
+    if not svc.cancel_job(job_id):
+        raise HTTPException(
+            status_code=404,
+            detail=f"Job '{job_id}' not found or cannot be cancelled.",
+        )
+    return {"status": "cancelled", "job_id": job_id}
 
 
 @app.post("/submit", response_model=JobSubmissionResponse)

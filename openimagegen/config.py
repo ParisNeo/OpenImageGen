@@ -106,15 +106,19 @@ def _resolve_config_path(explicit: Optional[str] = None) -> Optional[Path]:
 
 
 def _merge_configs(default: Dict[str, Any], loaded: Dict[str, Any]) -> Dict[str, Any]:
-    """Recursively merge `loaded` config on top of `default`."""
+    """Recursively deep-merge `loaded` config on top of `default`.
+
+    Nested dictionaries are merged key-by-key rather than replaced wholesale,
+    so partial overrides at any depth preserve sibling keys from the default.
+    """
     merged: Dict[str, Any] = {}
     for key, value in default.items():
         merged[key] = value.copy() if isinstance(value, dict) else value
-    for section, values in loaded.items():
-        if section in merged and isinstance(merged[section], dict) and isinstance(values, dict):
-            merged[section].update(values)
+    for key, value in loaded.items():
+        if key in merged and isinstance(merged[key], dict) and isinstance(value, dict):
+            merged[key] = _merge_configs(merged[key], value)
         else:
-            merged[section] = values
+            merged[key] = value.copy() if isinstance(value, dict) else value
     return merged
 
 

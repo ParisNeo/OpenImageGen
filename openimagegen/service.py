@@ -128,6 +128,59 @@ class ImageGenService:
             finally:
                 self.is_loading = False
 
+    def load_model(self, model_key: str) -> bool:
+        """Explicitly load a model pipeline into memory. Returns True on success."""
+        try:
+            self.ensure_model_loaded(model_key)
+            return True
+        except Exception as e:
+            logger.error(f"Failed to load model '{model_key}': {e}", exc_info=True)
+            return False
+
+    def unload_model(self, model_key: str) -> bool:
+        """Unload a model pipeline from memory to free GPU/CPU resources."""
+        if model_key not in self.pipelines:
+            return False
+
+        pipeline = self.pipelines.pop(model_key)
+        self.adapters.pop(model_key, None)
+
+        del pipeline
+        if self.device.type == "cuda":
+            torch.cuda.empty_cache()
+
+        logger.info(f"Unloaded model '{model_key}' from memory.")
+        return True
+
+    def get_memory_info(self) -> Dict[str, Any]:
+        """Return current memory and resource usage information."""
+        info: Dict[str, Any] = {
+            "loaded_models": list(self.pipelines.keys()),
+            "loaded_model_count": len(self.pipelines),
+            "device": str(self.device),
+        }
+        if self.device.type == "cuda" and torch.cuda.is_available():
+            info["gpu_memory_allocated_gb"] = round(torch.cuda.memory_allocated() / 1024**3, 2)
+            info["gpu_memory_reserved_gb"] = round(torch.cuda.memory_reserved() / 1024**3, 2)
+            if torch.cuda.device_count() > 0:
+                info["gpu_memory_total_gb"] = round(
+                    torch.cuda.get_device_properties(0).total_memory / 1024**3, 2
+                )
+        return info
+
+    def cancel_job(self, job_id: str) -> bool:
+        """Mark a job as cancelled. Returns True if the job was found and is cancellable."""
+        job = self.jobs.get(job_id)
+        if job is None:
+            return False
+        if job.status in ("completed", "failed", "cancelled"):
+            return False
+        job.status = "cancelled"
+        job.message = "Job cancelled by user."
+        self.jobs.update(job)
+        logger.info(f"Job {job_id} cancelled.")
+        return True
+
     def preload_models(self, model_keys: Optional[List[str]] = None) -> Dict[str, bool]:
         """Pre-download model weights without loading pipelines into memory.
         
@@ -209,6 +262,10 @@ class ImageGenService:
             logger.error(f"Job {job_id} missing from store at generation start.")
             return
 
+        if job.status == "cancelled":
+            logger.info(f"Job {job_id} was cancelled before generation started.")
+            return
+
         job.status = "processing"
         job.progress = 0
         job.message = "Starting generation..."
@@ -232,6 +289,11 @@ class ImageGenService:
             job.status = "failed"
             job.message = msg
             self.jobs.update(job)
+            return
+
+        current_job = self.jobs.get(job_id)
+        if current_job is not None and current_job.status == "cancelled":
+            logger.info(f"Job {job_id} was cancelled during model loading.")
             return
 
         adapter = self.adapters[model_key]

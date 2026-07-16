@@ -76,3 +76,6 @@ class KandinskyAdapter(BaseModelAdapter):
 
     def get_default_params(self) -> dict:
         return {"guidance_scale": 4.0, "num_inference_steps": 50, "num_images_per_prompt": 1}
+
+    def supports_negative_prompt(self) -> bool:
+        return False

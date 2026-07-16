@@ -48,12 +48,16 @@ class JobStore(ABC):
 class InMemoryJobStore(JobStore):
     """Thread-safe in-memory job store. Data is lost on process restart."""
 
-    def __init__(self) -> None:
+    def __init__(self, max_jobs: int = 1000) -> None:
         self._jobs: Dict[str, JobStatus] = {}
         self._lock = threading.RLock()
+        self._max_jobs = max_jobs
 
     def add(self, job: JobStatus) -> None:
         with self._lock:
+            if len(self._jobs) >= self._max_jobs:
+                oldest_id = min(self._jobs, key=lambda jid: self._jobs[jid].created_at)
+                del self._jobs[oldest_id]
             self._jobs[job.job_id] = job
 
     def get(self, job_id: str) -> Optional[JobStatus]:

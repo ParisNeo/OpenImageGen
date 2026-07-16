@@ -8,5 +8,6 @@ transformers>=4.30.0
 accelerate>=0.25.0
 Pillow>=9.0.0     # For image saving
 toml>=0.10.0
+huggingface_hub>=0.20.0
 # sentencepiece # (Potentially needed by some tokenizers like T5)
 # opencv-python # (Potentially needed by some pipelines/utility functions)
