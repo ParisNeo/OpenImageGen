@@ -1,4 +1,9 @@
-"""Stable Diffusion XL adapter."""
+"""
+@file        stable_diffusion_xl.py
+@author      ParisNeo
+@description Stable Diffusion XL adapter.
+             Implements the adapter interface for Stable Diffusion XL (SDXL) pipelines.
+"""
 
 from __future__ import annotations
 
@@ -27,6 +32,14 @@ class StableDiffusionXLAdapter(BaseModelAdapter):
             load_kwargs["variant"] = self.config_overrides["variant"]
         pipeline = StableDiffusionXLPipeline.from_pretrained(model_name, **load_kwargs)
         return self.apply_optimizations(pipeline, device)
+
+    def download_weights(self, model_name: str, cache_dir: str) -> None:
+        from diffusers import StableDiffusionXLPipeline
+        logger.info(f"[{self.type_name}] Pre-fetching weights for {model_name}...")
+        load_kwargs: dict = {"cache_dir": cache_dir}
+        if "variant" in self.config_overrides:
+            load_kwargs["variant"] = self.config_overrides["variant"]
+        StableDiffusionXLPipeline.from_pretrained(model_name, **load_kwargs)
 
     def generate(
         self,

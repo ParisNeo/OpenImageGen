@@ -1,4 +1,9 @@
-"""Pydantic v2 schemas for the OpenImageGen API."""
+"""
+@file        schemas.py
+@author      ParisNeo
+@description Pydantic v2 schemas for the OpenImageGen API.
+             Defines data models for image generation requests, job status tracking, and submissions.
+"""
 
 from __future__ import annotations
 

@@ -1,4 +1,9 @@
-"""Base adapter class for pluggable diffusion models."""
+"""
+@file        base.py
+@author      ParisNeo
+@description Base adapter class for pluggable diffusion models.
+             Defines the abstract interface for model loading, generation, and weight downloading.
+"""
 
 from __future__ import annotations
 
@@ -40,6 +45,19 @@ class BaseModelAdapter(ABC):
         **extra: Any,
     ) -> List[Image.Image]:
         ...
+
+    def download_weights(self, model_name: str, cache_dir: str) -> None:
+        """Pre-download model weights without loading the pipeline into memory.
+        
+        By default, this attempts to use `diffusers` internal snapshot download
+        mechanisms. Adapters can override this to fetch specific sub-components.
+        """
+        from huggingface_hub import snapshot_download
+        logger.info(f"[{self.type_name}] Fetching weights for {model_name} via huggingface_hub...")
+        snapshot_download(
+            repo_id=model_name,
+            cache_dir=cache_dir,
+        )
 
     def apply_optimizations(self, pipeline: Any, device: Any) -> Any:
         if device.type == "cuda":

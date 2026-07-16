@@ -1,4 +1,8 @@
-"""Tests for Pydantic v2 schemas."""
+"""
+@file        test_schemas.py
+@author      ParisNeo
+@description Tests for Pydantic v2 schemas.
+"""
 
 from __future__ import annotations
 

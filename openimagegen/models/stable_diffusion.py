@@ -1,4 +1,9 @@
-"""Stable Diffusion 1.x adapter."""
+"""
+@file        stable_diffusion.py
+@author      ParisNeo
+@description Stable Diffusion 1.x adapter.
+             Implements the adapter interface for Stable Diffusion 1.x text-to-image pipelines.
+"""
 
 from __future__ import annotations
 
@@ -29,6 +34,15 @@ class StableDiffusionAdapter(BaseModelAdapter):
             **self.config_overrides,
         )
         return self.apply_optimizations(pipeline, device)
+
+    def download_weights(self, model_name: str, cache_dir: str) -> None:
+        from diffusers import StableDiffusionPipeline
+        logger.info(f"[{self.type_name}] Pre-fetching weights for {model_name}...")
+        StableDiffusionPipeline.from_pretrained(
+            model_name,
+            cache_dir=cache_dir,
+            **self.config_overrides,
+        )
 
     def generate(
         self,

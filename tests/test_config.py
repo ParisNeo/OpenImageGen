@@ -1,4 +1,8 @@
-"""Tests for openimagegen.config (no torch/diffusers dependency)."""
+"""
+@file        test_config.py
+@author      ParisNeo
+@description Tests for openimagegen.config (no torch/diffusers dependency).
+"""
 
 from __future__ import annotations
 

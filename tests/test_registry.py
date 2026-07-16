@@ -1,4 +1,8 @@
-"""Tests for the model adapter registry."""
+"""
+@file        test_registry.py
+@author      ParisNeo
+@description Tests for the model adapter registry.
+"""
 
 from __future__ import annotations
 

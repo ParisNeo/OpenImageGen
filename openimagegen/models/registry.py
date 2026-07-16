@@ -1,4 +1,9 @@
-"""Model adapter registry with thread-safe singleton."""
+"""
+@file        registry.py
+@author      ParisNeo
+@description Model adapter registry with thread-safe singleton.
+             Maintains a global mapping of `type_name` strings to adapter classes.
+"""
 
 from __future__ import annotations
 

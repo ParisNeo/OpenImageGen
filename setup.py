@@ -1,3 +1,10 @@
+"""
+@file        setup.py
+@author      ParisNeo
+@description Setuptools setup script for OpenImageGen.
+             Defines package metadata, dependencies, and entry points for distribution.
+"""
+
 from setuptools import setup, find_packages
 
 try:

@@ -1,7 +1,9 @@
-"""Configuration loading for OpenImageGen.
-
-Handles TOML config discovery across OS-specific paths, environment variables,
-CLI overrides, and fallback to a generated default file.
+"""
+@file        config.py
+@author      ParisNeo
+@description Configuration loading for OpenImageGen.
+             Handles TOML config discovery across OS-specific paths, environment variables,
+             CLI overrides, and fallback to a generated default file.
 """
 
 from __future__ import annotations
@@ -25,6 +27,10 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "stable_diffusion_xl": {
             "name": "stabilityai/stable-diffusion-xl-base-1.0",
             "type": "stable_diffusion_xl",
+        },
+        "flux_schnell": {
+            "name": "black-forest-labs/FLUX.1-schnell",
+            "type": "flux",
         },
     },
     "settings": {

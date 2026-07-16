@@ -1,4 +1,8 @@
-"""Tests for the InMemoryJobStore."""
+"""
+@file        test_jobs.py
+@author      ParisNeo
+@description Tests for the InMemoryJobStore.
+"""
 
 from __future__ import annotations
 

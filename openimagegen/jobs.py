@@ -1,8 +1,10 @@
-"""Job storage abstraction for OpenImageGen.
-
-`JobStore` is an interface; `InMemoryJobStore` is the default implementation.
-Swap in a persistent implementation (SQLite, Redis, etc.) by passing to the
-service constructor.
+"""
+@file        jobs.py
+@author      ParisNeo
+@description Job storage abstraction for OpenImageGen.
+             `JobStore` is an interface; `InMemoryJobStore` is the default implementation.
+             Swap in a persistent implementation (SQLite, Redis, etc.) by passing to the
+             service constructor.
 """
 
 from __future__ import annotations

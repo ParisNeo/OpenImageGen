@@ -22,3 +22,7 @@ type = "stable_diffusion"
 [models.stable_diffusion_xl]
 name = "stabilityai/stable-diffusion-xl-base-1.0"
 type = "stable_diffusion_xl"
+
+[models.flux_schnell]
+name = "black-forest-labs/FLUX.1-schnell"
+type = "flux"

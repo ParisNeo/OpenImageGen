@@ -1,8 +1,14 @@
-"""Image generation service: orchestrates adapters, jobs, and artifact cleanup."""
+"""
+@file        service.py
+@author      ParisNeo
+@description Image generation service: orchestrates adapters, jobs, and artifact cleanup.
+             Coordinates configuration, model adapters, job execution, and periodic cleanup.
+"""
 
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from contextlib import nullcontext
 from pathlib import Path
@@ -11,6 +17,7 @@ from typing import Any, Dict, List, Optional
 import torch
 
 from .config import load_config
+from .downloads import download_model
 from .jobs import InMemoryJobStore, JobStore
 from .models import get_registry
 from .schemas import ImageGenerationRequest, JobStatus
@@ -53,8 +60,11 @@ class ImageGenService:
         self.adapters: Dict[str, Any] = {}
         self.jobs: JobStore = job_store or InMemoryJobStore()
         self.registry = get_registry()
-
-        self.load_pipelines()
+        self.is_loading: bool = False
+        self.is_downloading: bool = False
+        self.download_status: Dict[str, str] = {}
+        self._load_lock = threading.Lock()
+        self._download_lock = threading.Lock()
 
     def _get_device(self) -> torch.device:
         if self.force_gpu:
@@ -75,29 +85,34 @@ class ImageGenService:
         logger.info("Using CPU.")
         return torch.device("cpu")
 
-    def load_pipelines(self) -> None:
-        """Load all configured models via their registered adapters."""
-        if not self.models_config:
-            logger.warning("No models defined in configuration.")
-            return
+    def ensure_model_loaded(self, model_key: str) -> Any:
+        """Lazy-load a model pipeline if not already loaded. Thread-safe."""
+        if model_key in self.pipelines:
+            return self.pipelines[model_key]
 
-        for model_key, model_info in self.models_config.items():
-            model_name = model_info.get("name")
-            model_type = model_info.get("type")
-            if not model_name or not model_type:
-                logger.warning(f"Skipping '{model_key}': missing 'name' or 'type'.")
-                continue
+        if model_key not in self.models_config:
+            raise ValueError(f"Model '{model_key}' is not configured.")
 
-            adapter_cls = self.registry.try_get(model_type)
-            if adapter_cls is None:
-                logger.error(
-                    f"No adapter registered for type {model_type!r}. "
-                    f"Available types: {self.registry.list_types()}"
-                )
-                continue
+        model_info = self.models_config[model_key]
+        model_name = model_info.get("name")
+        model_type = model_info.get("type")
+        if not model_name or not model_type:
+            raise ValueError(f"Model '{model_key}' is missing 'name' or 'type'.")
 
-            logger.info(f"Loading '{model_key}' ({model_name}) via {adapter_cls.__name__}...")
+        adapter_cls = self.registry.try_get(model_type)
+        if adapter_cls is None:
+            raise ValueError(
+                f"No adapter registered for type {model_type!r}. "
+                f"Available types: {self.registry.list_types()}"
+            )
+
+        with self._load_lock:
+            if model_key in self.pipelines:
+                return self.pipelines[model_key]
+
+            self.is_loading = True
             try:
+                logger.info(f"Lazy-loading '{model_key}' ({model_name}) via {adapter_cls.__name__}...")
                 overrides = {k: v for k, v in model_info.items() if k not in ("name", "type")}
                 adapter = adapter_cls(**overrides)
                 pipeline = adapter.load_pipeline(
@@ -109,16 +124,65 @@ class ImageGenService:
                 self.pipelines[model_key] = pipeline
                 self.adapters[model_key] = adapter
                 logger.info(f"Loaded '{model_key}' on {self.device} with dtype {self.dtype}.")
-            except Exception as e:
-                logger.error(f"Failed to load '{model_key}': {e}", exc_info=True)
+                return pipeline
+            finally:
+                self.is_loading = False
+
+    def preload_models(self, model_keys: Optional[List[str]] = None) -> Dict[str, bool]:
+        """Pre-download model weights without loading pipelines into memory.
+        
+        Args:
+            model_keys: Optional list of specific model keys to download. 
+                        If None, downloads all configured models.
+                        
+        Returns:
+            A dictionary mapping model keys to download success status.
+        """
+        target_keys = model_keys or list(self.models_config.keys())
+        results = {}
+        
+        with self._download_lock:
+            self.is_downloading = True
+            try:
+                for key in target_keys:
+                    if key not in self.models_config:
+                        logger.warning(f"Cannot download '{key}': not in config.")
+                        results[key] = False
+                        continue
+                        
+                    info = self.models_config[key]
+                    name = info.get("name")
+                    mtype = info.get("type")
+                    if not name or not mtype:
+                        logger.error(f"Cannot download '{key}': missing name or type.")
+                        results[key] = False
+                        continue
+                        
+                    self.download_status[key] = "downloading"
+                    logger.info(f"Pre-downloading weights for '{key}' ({name})...")
+                    
+                    overrides = {k: v for k, v in info.items() if k not in ("name", "type")}
+                    success = download_model(
+                        model_name=name,
+                        model_type=mtype,
+                        cache_dir=str(self.model_cache_dir),
+                        config_overrides=overrides,
+                    )
+                    
+                    self.download_status[key] = "completed" if success else "failed"
+                    results[key] = success
+                    
+                return results
+            finally:
+                self.is_downloading = False
 
     def list_models(self) -> List[str]:
         """Return the list of configured model keys."""
         return list(self.models_config.keys())
 
     def is_model_available(self, model_key: str) -> bool:
-        """Return True if the model was successfully loaded."""
-        return model_key in self.pipelines
+        """Return True if the model is configured (does not require pre-loading)."""
+        return model_key in self.models_config
 
     def _build_progress_callback(self, job_id: str, total_steps: int):
         """Factory for the diffusers `callback` that updates job progress."""
@@ -152,15 +216,24 @@ class ImageGenService:
         self.jobs.update(job)
 
         model_key = request.model_name or self.default_model
-        if not model_key or model_key not in self.pipelines:
-            msg = f"Model '{model_key}' is not loaded."
+        if not model_key or not self.is_model_available(model_key):
+            msg = f"Model '{model_key}' is not configured."
             logger.error(f"Job {job_id}: {msg}")
             job.status = "failed"
             job.message = msg
             self.jobs.update(job)
             return
 
-        pipeline = self.pipelines[model_key]
+        try:
+            pipeline = self.ensure_model_loaded(model_key)
+        except Exception as e:
+            msg = f"Failed to load model '{model_key}': {e}"
+            logger.error(f"Job {job_id}: {msg}", exc_info=True)
+            job.status = "failed"
+            job.message = msg
+            self.jobs.update(job)
+            return
+
         adapter = self.adapters[model_key]
         adapter_defaults = adapter.get_default_params()
         merged_defaults = {**self.generation_defaults, **adapter_defaults}

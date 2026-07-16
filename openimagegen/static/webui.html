@@ -1,5 +1,10 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<!--
+@file        webui.html
+@author      ParisNeo
+@description OpenImageGen Studio - HTML/CSS/JS interface for the AI image generation API.
+-->
+<html lang="en" data-theme="aurora-dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,36 +16,40 @@
    ========================================================================== */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-:root[data-theme="dark"] {
-    --bg-primary: #0f1115;
-    --bg-secondary: #161922;
-    --bg-tertiary: #1e212c;
-    --bg-elevated: #252836;
-    --bg-input: #1a1d27;
-    --border: #2d3142;
-    --border-strong: #3a3f52;
-    --text-primary: #e4e6eb;
-    --text-secondary: #9ba1ad;
-    --text-tertiary: #6b7080;
-    --accent: #7c5cff;
-    --accent-hover: #6a48ff;
-    --accent-soft: rgba(124, 92, 255, 0.15);
-    --accent-pink: #ff5cb8;
-    --success: #4ade80;
-    --warning: #fbbf24;
-    --error: #f87171;
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
-    --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
-    --gradient-accent: linear-gradient(135deg, #7c5cff 0%, #ff5cb8 100%);
+:root[data-theme="aurora-dark"] {
+    --bg-primary: #0a0c10;
+    --bg-secondary: #12151b;
+    --bg-tertiary: #1a1f27;
+    --bg-elevated: #222831;
+    --bg-input: #161a21;
+    --border: #2a3038;
+    --border-strong: #3a414d;
+    --text-primary: #f0f2f5;
+    --text-secondary: #a0a6b0;
+    --text-tertiary: #6b7280;
+    --accent: #10b981;
+    --accent-hover: #059669;
+    --accent-soft: rgba(16, 185, 129, 0.15);
+    --accent-glow: rgba(16, 185, 129, 0.4);
+    --accent-secondary: #06b6d4;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --error: #ef4444;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.6);
+    --gradient-accent: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+    --gradient-bg: radial-gradient(circle at 0% 0%, rgba(16, 185, 129, 0.05) 0%, transparent 50%),
+                   radial-gradient(circle at 100% 100%, rgba(6, 182, 212, 0.05) 0%, transparent 50%);
 }
 
 html, body { height: 100%; }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
                  "Helvetica Neue", Arial, sans-serif;
     background: var(--bg-primary);
+    background-image: var(--gradient-bg);
     color: var(--text-primary);
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
@@ -57,6 +66,8 @@ button { font-family: inherit; }
     display: flex;
     flex-direction: column;
     height: 100vh;
+    position: relative;
+    z-index: 1;
 }
 
 .app-header {
@@ -64,7 +75,9 @@ button { font-family: inherit; }
     align-items: center;
     justify-content: space-between;
     padding: 12px 24px;
-    background: var(--bg-secondary);
+    background: rgba(18, 21, 27, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
     z-index: 50;
@@ -72,7 +85,7 @@ button { font-family: inherit; }
 
 .app-main {
     display: grid;
-    grid-template-columns: 380px 1fr;
+    grid-template-columns: 360px 1fr;
     flex: 1;
     min-height: 0;
 }
@@ -91,30 +104,32 @@ button { font-family: inherit; }
 }
 
 .logo-mark {
-    width: 38px;
-    height: 38px;
+    width: 36px;
+    height: 36px;
     background: var(--gradient-accent);
     border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
-    box-shadow: 0 4px 14px rgba(124, 92, 255, 0.35);
+    font-size: 18px;
+    box-shadow: 0 4px 14px var(--accent-glow);
     flex-shrink: 0;
 }
 
 .logo h1 {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 700;
     letter-spacing: -0.01em;
     line-height: 1.2;
 }
 
 .logo-tag {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 500;
-    color: var(--text-tertiary);
+    color: var(--accent);
     margin-left: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .logo-sub {
@@ -141,13 +156,13 @@ button { font-family: inherit; }
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.15s ease;
+    transition: all 0.2s ease;
 }
 
 .icon-button:hover {
     background: var(--bg-elevated);
-    color: var(--text-primary);
-    border-color: var(--border-strong);
+    color: var(--accent);
+    border-color: var(--accent);
 }
 
 .status-pill {
@@ -158,9 +173,10 @@ button { font-family: inherit; }
     background: var(--bg-tertiary);
     border: 1px solid var(--border);
     border-radius: 999px;
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text-secondary);
-    transition: all 0.15s ease;
+    transition: all 0.2s ease;
+    font-weight: 500;
 }
 
 .status-dot {
@@ -171,21 +187,21 @@ button { font-family: inherit; }
     flex-shrink: 0;
 }
 
-.status-pill.online { color: var(--success); border-color: rgba(74, 222, 128, 0.3); }
+.status-pill.online { color: var(--success); border-color: rgba(16, 185, 129, 0.3); }
 .status-pill.online .status-dot {
     background: var(--success);
-    box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.2);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
     animation: pulse 2s ease-in-out infinite;
 }
 
-.status-pill.offline { color: var(--error); border-color: rgba(248, 113, 113, 0.3); }
+.status-pill.offline { color: var(--error); border-color: rgba(239, 68, 68, 0.3); }
 .status-pill.offline .status-dot { background: var(--error); }
 
 .status-pill.connecting { color: var(--warning); }
 
 @keyframes pulse {
-    0%, 100% { box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.2); }
-    50%      { box-shadow: 0 0 0 6px rgba(74, 222, 128, 0.05); }
+    0%, 100% { box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2); }
+    50%      { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.05); }
 }
 
 /* ==========================================================================
@@ -195,7 +211,7 @@ button { font-family: inherit; }
     background: var(--bg-secondary);
     border-right: 1px solid var(--border);
     overflow-y: auto;
-    padding: 20px 22px 32px;
+    padding: 20px 20px 32px;
 }
 
 @media (max-width: 980px) {
@@ -207,7 +223,11 @@ button { font-family: inherit; }
 }
 
 .panel-section {
-    margin-bottom: 22px;
+    margin-bottom: 24px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
 }
 
 .panel-section h2 {
@@ -215,7 +235,7 @@ button { font-family: inherit; }
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: var(--text-tertiary);
+    color: var(--accent);
     margin-bottom: 12px;
 }
 
@@ -224,20 +244,25 @@ button { font-family: inherit; }
     margin-bottom: 14px;
 }
 
+.form-group:last-child { margin-bottom: 0; }
+
 .form-label {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text-secondary);
     margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
 }
 
 .form-label .hint {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--text-tertiary);
     font-weight: 400;
+    text-transform: none;
 }
 
 input[type="text"],
@@ -252,14 +277,14 @@ select {
     color: var(--text-primary);
     font-size: 13px;
     font-family: inherit;
-    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
 }
 
 input:focus, textarea:focus, select:focus {
     outline: none;
     border-color: var(--accent);
     box-shadow: 0 0 0 3px var(--accent-soft);
-    background: var(--bg-tertiary);
+    background: var(--bg-primary);
 }
 
 input::placeholder, textarea::placeholder {
@@ -274,7 +299,7 @@ textarea {
 
 select {
     cursor: pointer;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239ba1ad' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2310b981' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 10px center;
     background-size: 16px;
@@ -285,7 +310,7 @@ select {
 /* Slider + number combos */
 .slider-row {
     display: grid;
-    grid-template-columns: 1fr 70px;
+    grid-template-columns: 1fr 60px;
     gap: 10px;
     align-items: center;
 }
@@ -311,10 +336,10 @@ input[type="range"]::-webkit-slider-thumb {
     background: var(--accent);
     border-radius: 50%;
     cursor: pointer;
-    box-shadow: 0 2px 6px rgba(124, 92, 255, 0.4);
+    box-shadow: 0 0 8px var(--accent-glow);
     transition: transform 0.1s;
 }
-input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 
 input[type="range"]::-moz-range-thumb {
     width: 16px;
@@ -323,12 +348,10 @@ input[type="range"]::-moz-range-thumb {
     border-radius: 50%;
     cursor: pointer;
     border: none;
-    box-shadow: 0 2px 6px rgba(124, 92, 255, 0.4);
+    box-shadow: 0 0 8px var(--accent-glow);
 }
 
-input[type="range"].slider-mini {
-    height: 4px;
-}
+input[type="range"].slider-mini { height: 4px; }
 input[type="range"].slider-mini::-webkit-slider-thumb { width: 14px; height: 14px; }
 input[type="range"].slider-mini::-moz-range-thumb     { width: 14px; height: 14px; }
 
@@ -342,14 +365,14 @@ input[type="range"].slider-mini::-moz-range-thumb     { width: 14px; height: 14p
 
 .preset-btn {
     padding: 5px 10px;
-    background: var(--bg-tertiary);
+    background: var(--bg-input);
     border: 1px solid var(--border);
     border-radius: 6px;
     color: var(--text-secondary);
     font-size: 11px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.15s;
+    transition: all 0.2s;
 }
 
 .preset-btn:hover {
@@ -371,27 +394,6 @@ input[type="range"].slider-mini::-moz-range-thumb     { width: 14px; height: 14p
     gap: 10px;
 }
 
-.swap-btn {
-    width: 32px;
-    height: 32px;
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text-secondary);
-    cursor: pointer;
-    align-self: end;
-    margin-bottom: 1px;
-    transition: all 0.15s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.swap-btn:hover {
-    background: var(--bg-elevated);
-    color: var(--text-primary);
-}
-
 /* Number + button group */
 .num-with-btns {
     display: grid;
@@ -402,7 +404,7 @@ input[type="range"].slider-mini::-moz-range-thumb     { width: 14px; height: 14p
 
 .btn-mini {
     height: 32px;
-    background: var(--bg-tertiary);
+    background: var(--bg-input);
     border: 1px solid var(--border);
     border-radius: 6px;
     color: var(--text-secondary);
@@ -411,23 +413,18 @@ input[type="range"].slider-mini::-moz-range-thumb     { width: 14px; height: 14p
     align-items: center;
     justify-content: center;
     font-size: 13px;
-    transition: all 0.15s;
+    transition: all 0.2s;
 }
 
 .btn-mini:hover:not(:disabled) {
     background: var(--bg-elevated);
-    color: var(--text-primary);
+    color: var(--accent);
+    border-color: var(--accent);
 }
 
 .btn-mini:disabled {
     opacity: 0.4;
     cursor: not-allowed;
-}
-
-.btn-mini.active {
-    background: var(--accent-soft);
-    border-color: var(--accent);
-    color: var(--accent);
 }
 
 /* Model info card */
@@ -474,7 +471,7 @@ input[type="range"].slider-mini::-moz-range-thumb     { width: 14px; height: 14p
 /* Generate button */
 .generate-btn {
     width: 100%;
-    padding: 13px;
+    padding: 14px;
     background: var(--gradient-accent);
     border: none;
     border-radius: 10px;
@@ -486,14 +483,16 @@ input[type="range"].slider-mini::-moz-range-thumb     { width: 14px; height: 14p
     align-items: center;
     justify-content: center;
     gap: 8px;
-    transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
-    box-shadow: 0 4px 14px rgba(124, 92, 255, 0.3);
+    transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+    box-shadow: 0 4px 14px var(--accent-glow);
     margin-top: 24px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .generate-btn:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(124, 92, 255, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px var(--accent-glow);
 }
 
 .generate-btn:active:not(:disabled) {
@@ -517,9 +516,7 @@ input[type="range"].slider-mini::-moz-range-thumb     { width: 14px; height: 14p
 
 .generate-btn.loading .spinner { display: block; }
 
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 .kbd-hint {
     margin-top: 10px;
@@ -608,6 +605,7 @@ kbd {
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
+    transition: all 0.2s;
 }
 
 .retry-btn:hover { background: var(--accent); color: white; }
@@ -633,7 +631,7 @@ kbd {
 
 .action-btn {
     padding: 7px 12px;
-    background: rgba(15, 17, 21, 0.85);
+    background: rgba(10, 12, 16, 0.85);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     border: 1px solid var(--border-strong);
@@ -645,10 +643,10 @@ kbd {
     display: flex;
     align-items: center;
     gap: 5px;
-    transition: background 0.15s;
+    transition: background 0.2s, color 0.2s;
 }
 
-.action-btn:hover { background: var(--bg-elevated); }
+.action-btn:hover { background: var(--accent); color: white; border-color: var(--accent); }
 
 .image-meta {
     position: absolute;
@@ -656,7 +654,7 @@ kbd {
     left: 0;
     right: 0;
     padding: 14px 18px;
-    background: linear-gradient(to top, rgba(15, 17, 21, 0.95), transparent);
+    background: linear-gradient(to top, rgba(10, 12, 16, 0.95), transparent);
     font-size: 11px;
     color: var(--text-tertiary);
     opacity: 0;
@@ -676,7 +674,7 @@ kbd {
     left: 0;
     right: 0;
     padding: 16px 20px 20px;
-    background: linear-gradient(to top, rgba(15, 17, 21, 0.98) 60%, transparent);
+    background: linear-gradient(to top, rgba(10, 12, 16, 0.98) 60%, transparent);
 }
 
 .progress-info {
@@ -707,7 +705,7 @@ kbd {
     background: var(--gradient-accent);
     transition: width 0.4s ease;
     border-radius: 3px;
-    box-shadow: 0 0 8px rgba(124, 92, 255, 0.5);
+    box-shadow: 0 0 8px var(--accent-glow);
 }
 
 /* Batch carousel */
@@ -778,11 +776,11 @@ kbd {
     letter-spacing: 0;
     padding: 4px 8px;
     border-radius: 4px;
-    transition: all 0.15s;
+    transition: all 0.2s;
 }
 
 .gallery-clear:hover {
-    color: var(--text-primary);
+    color: var(--error);
     background: var(--bg-tertiary);
 }
 
@@ -800,7 +798,7 @@ kbd {
     overflow: hidden;
     cursor: pointer;
     border: 2px solid transparent;
-    transition: border-color 0.15s, transform 0.15s;
+    transition: border-color 0.2s, transform 0.2s;
 }
 
 .gallery-item:hover {
@@ -913,12 +911,12 @@ kbd {
     font-size: 18px;
     padding: 4px 8px;
     border-radius: 6px;
-    transition: all 0.15s;
+    transition: all 0.2s;
 }
 
 .modal-close:hover {
     background: var(--bg-tertiary);
-    color: var(--text-primary);
+    color: var(--error);
 }
 
 .modal-body {
@@ -971,7 +969,7 @@ kbd {
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: var(--text-tertiary);
+    color: var(--accent);
 }
 
 .info-list {
@@ -1042,8 +1040,309 @@ kbd {
 }
 
 /* ==========================================================================
+   Light Theme
+========================================================================== */
+:root[data-theme="aurora-light"] {
+    --bg-primary: #f4f6f9;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #eef1f6;
+    --bg-elevated: #e2e8f0;
+    --bg-input: #ffffff;
+    --border: #d8dee7;
+    --border-strong: #b0b8c4;
+    --text-primary: #1a1f27;
+    --text-secondary: #4a5568;
+    --text-tertiary: #8b95a5;
+    --accent: #059669;
+    --accent-hover: #047857;
+    --accent-soft: rgba(5, 150, 105, 0.10);
+    --accent-glow: rgba(5, 150, 105, 0.2);
+    --accent-secondary: #0891b2;
+    --success: #059669;
+    --warning: #d97706;
+    --error: #dc2626;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.12);
+    --gradient-accent: linear-gradient(135deg, #059669 0%, #0891b2 100%);
+    --gradient-bg: radial-gradient(circle at 0% 0%, rgba(5, 150, 105, 0.03) 0%, transparent 50%),
+                   radial-gradient(circle at 100% 100%, rgba(8, 145, 178, 0.03) 0%, transparent 50%);
+}
+
+/* ==========================================================================
+   Theme Transitions
+========================================================================== */
+body, .app-header, .controls-panel, .panel-section, .preview-stage,
+.modal, .toast, .icon-button, .status-pill, input, textarea, select,
+.preset-btn, .btn-mini, .gallery-item, .template-btn {
+    transition: background-color 0.3s ease, border-color 0.3s ease,
+                color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* ==========================================================================
+   Animated Background Orbs
+========================================================================== */
+.bg-orbs {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+}
+.bg-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.15;
+    animation: orbFloat 25s ease-in-out infinite;
+}
+.bg-orb:nth-child(1) { width: 420px; height: 420px; background: var(--accent); top: -120px; left: -120px; }
+.bg-orb:nth-child(2) { width: 360px; height: 360px; background: var(--accent-secondary); bottom: -120px; right: -120px; animation-delay: -8s; }
+.bg-orb:nth-child(3) { width: 300px; height: 300px; background: var(--accent); top: 40%; left: 55%; animation-delay: -16s; opacity: 0.08; }
+
+@keyframes orbFloat {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(40px, -60px) scale(1.08); }
+    66% { transform: translate(-30px, 40px) scale(0.94); }
+}
+
+/* ==========================================================================
+   Theme Toggle Icons
+========================================================================== */
+:root[data-theme="aurora-dark"] .icon-moon { display: block; }
+:root[data-theme="aurora-dark"] .icon-sun  { display: none; }
+:root[data-theme="aurora-light"] .icon-moon { display: none; }
+:root[data-theme="aurora-light"] .icon-sun  { display: block; }
+
+/* ==========================================================================
+   Prompt Templates
+========================================================================== */
+.templates-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.template-btn {
+    padding: 6px 10px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+.template-btn:hover {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+.surprise-btn {
+    width: 100%;
+    padding: 8px;
+    margin-top: 10px;
+    background: var(--bg-input);
+    border: 1px dashed var(--border-strong);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.surprise-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    border-style: solid;
+}
+
+/* ==========================================================================
+   Gallery Search & Stats
+========================================================================== */
+.gallery-toolbar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+    align-items: center;
+}
+.gallery-search-wrap {
+    flex: 1;
+    position: relative;
+}
+.gallery-search-wrap svg {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-tertiary);
+    pointer-events: none;
+}
+.gallery-search {
+    width: 100%;
+    padding: 8px 12px 8px 34px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 12px;
+    font-family: inherit;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.gallery-search:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.gallery-search::placeholder { color: var(--text-tertiary); }
+.gallery-stats {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    font-weight: 600;
+    white-space: nowrap;
+    padding: 4px 10px;
+    background: var(--bg-tertiary);
+    border-radius: 999px;
+}
+
+/* ==========================================================================
+   Lightbox
+========================================================================== */
+.lightbox-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 250;
+    padding: 48px;
+}
+.lightbox-overlay.active { display: flex; }
+.lightbox-image {
+    max-width: 90vw;
+    max-height: 85vh;
+    border-radius: 8px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    user-select: none;
+}
+.lightbox-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 48px;
+    height: 48px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    transition: background 0.2s;
+}
+.lightbox-nav:hover { background: rgba(255, 255, 255, 0.2); }
+.lightbox-nav.prev { left: 24px; }
+.lightbox-nav.next { right: 24px; }
+.lightbox-close {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+.lightbox-close:hover { background: rgba(239, 68, 68, 0.5); }
+.lightbox-counter {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 13px;
+    font-weight: 500;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 6px 16px;
+    border-radius: 999px;
+}
+
+/* ==========================================================================
+   Shortcuts Modal
+========================================================================== */
+.shortcut-list { display: grid; gap: 2px; }
+.shortcut-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+}
+.shortcut-item:last-child { border-bottom: none; }
+.shortcut-item .shortcut-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+.shortcut-keys { display: flex; gap: 4px; align-items: center; }
+
+/* ==========================================================================
+   Context Menu
+========================================================================== */
+.ctx-menu {
+    position: fixed;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg);
+    padding: 4px;
+    z-index: 400;
+    min-width: 170px;
+    display: none;
+    animation: ctxIn 0.15s ease;
+}
+.ctx-menu.active { display: block; }
+@keyframes ctxIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to   { opacity: 1; transform: scale(1); }
+}
+.ctx-menu-item {
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.ctx-menu-item:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+.ctx-menu-item.danger:hover { color: var(--error); }
+.ctx-menu-separator {
+    height: 1px;
+    background: var(--border);
+    margin: 4px 0;
+}
+
+/* ==========================================================================
    Scrollbars
-   ========================================================================== */
+========================================================================== */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: var(--bg-primary); }
 ::-webkit-scrollbar-thumb {
@@ -1065,6 +1364,11 @@ kbd {
 </style>
 </head>
 <body>
+<div class="bg-orbs">
+    <div class="bg-orb"></div>
+    <div class="bg-orb"></div>
+    <div class="bg-orb"></div>
+</div>
 <div class="app">
 
 <header class="app-header">
@@ -1076,6 +1380,28 @@ kbd {
         </div>
     </div>
     <div class="header-actions">
+        <button class="icon-button" id="themeToggle" title="Toggle theme" aria-label="Toggle theme">
+            <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+            <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+        </button>
+        <button class="icon-button" id="shortcutsBtn" title="Keyboard shortcuts" aria-label="Keyboard shortcuts">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
+                <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 16h10"></path>
+            </svg>
+        </button>
         <button class="icon-button" id="infoBtn" title="Service information" aria-label="Service information">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
@@ -1111,6 +1437,12 @@ kbd {
                               placeholder="blurry, low quality, distorted, watermark"
                               rows="2"></textarea>
                 </div>
+            </section>
+
+            <section class="panel-section">
+                <h2>Templates</h2>
+                <div class="templates-row" id="templatesRow"></div>
+                <button type="button" class="surprise-btn" id="surpriseBtn">🎲 Surprise me</button>
             </section>
 
             <section class="panel-section">
@@ -1234,6 +1566,9 @@ kbd {
                     <button class="action-btn" id="openImageBtn" title="Open full size">
                         <span>⤢</span><span>Open</span>
                     </button>
+                    <button class="action-btn" id="downloadAllBtn" title="Download all images" style="display:none;">
+                        <span>⬇</span><span>All</span>
+                    </button>
                 </div>
 
                 <div class="image-meta" id="imageMeta"></div>
@@ -1247,6 +1582,16 @@ kbd {
                     <span>Recent generations</span>
                     <button class="gallery-clear" id="clearHistoryBtn">Clear</button>
                 </h2>
+                <div class="gallery-toolbar">
+                    <div class="gallery-search-wrap">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <input type="text" class="gallery-search" id="gallerySearch" placeholder="Search prompts...">
+                    </div>
+                    <span class="gallery-stats" id="galleryStats"></span>
+                </div>
                 <div class="gallery-grid" id="galleryGrid">
                     <div class="gallery-empty">No generations yet · Your history will appear here</div>
                 </div>
@@ -1267,6 +1612,63 @@ kbd {
     </div>
 </div>
 
+<div class="modal-overlay" id="shortcutsModal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="shortcutsTitle">
+    <div class="modal" role="document">
+        <div class="modal-header">
+            <h2 id="shortcutsTitle">Keyboard shortcuts</h2>
+            <button class="modal-close" id="shortcutsClose" aria-label="Close">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="shortcut-list">
+                <div class="shortcut-item">
+                    <span class="shortcut-desc">Generate image</span>
+                    <span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Enter</kbd></span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="shortcut-desc">Toggle theme</span>
+                    <span class="shortcut-keys"><kbd>T</kbd></span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="shortcut-desc">Focus prompt</span>
+                    <span class="shortcut-keys"><kbd>/</kbd></span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="shortcut-desc">Search gallery</span>
+                    <span class="shortcut-keys"><kbd>G</kbd></span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="shortcut-desc">Show this help</span>
+                    <span class="shortcut-keys"><kbd>?</kbd></span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="shortcut-desc">Close modal / lightbox</span>
+                    <span class="shortcut-keys"><kbd>Esc</kbd></span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="shortcut-desc">Navigate lightbox</span>
+                    <span class="shortcut-keys"><kbd>←</kbd> <kbd>→</kbd></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="lightbox-overlay" id="lightboxOverlay">
+    <button class="lightbox-close" id="lightboxClose" aria-label="Close">✕</button>
+    <button class="lightbox-nav prev" id="lightboxPrev" aria-label="Previous">‹</button>
+    <img class="lightbox-image" id="lightboxImage" alt="Full size image">
+    <button class="lightbox-nav next" id="lightboxNext" aria-label="Next">›</button>
+    <div class="lightbox-counter" id="lightboxCounter"></div>
+</div>
+
+<div class="ctx-menu" id="ctxMenu">
+    <div class="ctx-menu-item" id="ctxView">👁️ View</div>
+    <div class="ctx-menu-item" id="ctxReuse">♻️ Reuse settings</div>
+    <div class="ctx-menu-item" id="ctxCopyPrompt">📋 Copy prompt</div>
+    <div class="ctx-menu-separator"></div>
+    <div class="ctx-menu-item danger" id="ctxDelete">🗑️ Delete</div>
+</div>
+
 <div class="toast-container" id="toastContainer" aria-live="polite"></div>
 
 <script>
@@ -1277,9 +1679,62 @@ kbd {
 // ============================================================================
 const POLL_INTERVAL_MS    = 1500;
 const HEALTH_RECHECK_MS   = 30000;
+const LOADING_CHECK_MS    = 5000;
 const HISTORY_KEY         = 'oig_history_v1';
 const SETTINGS_KEY        = 'oig_settings_v1';
+const THEME_KEY           = 'oig_theme_v1';
 const MAX_HISTORY_ITEMS   = 24;
+
+const PROMPT_TEMPLATES = [
+    {
+        icon: '📸', name: 'Portrait',
+        prompt: 'A photorealistic portrait of a woman, studio lighting, soft bokeh background, 85mm lens, ultra detailed skin texture, natural colors',
+        negative: 'deformed, blurry, bad anatomy, low quality, cartoon, anime',
+        steps: 40, guidance: 7.5, width: 768, height: 768
+    },
+    {
+        icon: '🌄', name: 'Landscape',
+        prompt: 'Breathtaking mountain landscape at golden hour, dramatic clouds, alpine lake reflection, ultra wide angle, photorealistic, 8k',
+        negative: 'people, text, watermark, low quality, flat lighting',
+        steps: 50, guidance: 7.0, width: 1024, height: 576
+    },
+    {
+        icon: '🎨', name: 'Digital Art',
+        prompt: 'Digital painting of a mystical forest creature, vibrant colors, intricate details, concept art style, trending on artstation, dramatic lighting',
+        negative: 'blurry, low quality, JPEG artifacts, amateur',
+        steps: 45, guidance: 8.0, width: 1024, height: 1024
+    },
+    {
+        icon: '🔮', name: 'Cyberpunk',
+        prompt: 'Cyberpunk city street at night, neon lights, rainy reflections, futuristic architecture, blade runner aesthetic, ultra detailed, cinematic',
+        negative: 'rural, natural lighting, daytime, low quality',
+        steps: 50, guidance: 7.5, width: 1024, height: 576
+    },
+    {
+        icon: '🌸', name: 'Anime',
+        prompt: 'Anime style illustration of a girl with cherry blossoms, cel shaded, vibrant colors, studio ghibli inspired, detailed background, key visual',
+        negative: 'photorealistic, 3D render, western cartoon, deformed',
+        steps: 35, guidance: 7.0, width: 768, height: 1024
+    },
+    {
+        icon: '🎭', name: 'Fantasy',
+        prompt: 'Epic fantasy castle on a floating island, magical atmosphere, glowing particles, waterfalls, digital painting, dramatic lighting, ultra detailed',
+        negative: 'modern, urban, sci-fi, low quality, simple',
+        steps: 50, guidance: 8.0, width: 832, height: 1216
+    },
+    {
+        icon: '🏗️', name: 'Architecture',
+        prompt: 'Modern minimalist villa with infinity pool, glass walls, sunset reflections, architectural visualization, photorealistic render, 8k',
+        negative: 'people, clutter, low quality, cartoon',
+        steps: 45, guidance: 7.0, width: 1024, height: 768
+    },
+    {
+        icon: '🦄', name: 'Surreal',
+        prompt: 'Surreal dreamscape with floating islands and giant mushrooms, impossible geometry, soft pastel colors, ethereal atmosphere, highly detailed',
+        negative: 'realistic, ordinary, mundane, low quality',
+        steps: 50, guidance: 9.0, width: 1024, height: 1024
+    }
+];
 
 // ============================================================================
 // State
@@ -1292,7 +1747,10 @@ const state = {
     currentJob: null,
     lastUsedSeed: null,
     history: [],
-    settings: {}
+    settings: {},
+    currentBatchUrls: null,
+    lightboxIndex: 0,
+    contextMenuItem: null
 };
 
 // ============================================================================
@@ -1314,9 +1772,14 @@ function cacheDom() {
         'progressContainer', 'progressLabel', 'progressPercent', 'progressFill',
         'previewImage', 'previewOverlay', 'imageMeta',
         'batchCarousel', 'batchThumbs',
-        'downloadBtn', 'copySeedBtn', 'openImageBtn',
-        'galleryGrid', 'clearHistoryBtn',
+        'downloadBtn', 'copySeedBtn', 'openImageBtn', 'downloadAllBtn',
+        'galleryGrid', 'clearHistoryBtn', 'gallerySearch', 'galleryStats',
         'infoBtn', 'infoModal', 'infoClose', 'infoBody',
+        'themeToggle', 'shortcutsBtn', 'shortcutsModal', 'shortcutsClose',
+        'templatesRow', 'surpriseBtn',
+        'lightboxOverlay', 'lightboxImage', 'lightboxClose',
+        'lightboxPrev', 'lightboxNext', 'lightboxCounter',
+        'ctxMenu', 'ctxView', 'ctxReuse', 'ctxCopyPrompt', 'ctxDelete',
         'toastContainer'
     ].forEach(id => { els[id] = document.getElementById(id); });
 }
@@ -1400,16 +1863,34 @@ async function apiPost(path, body) {
 async function checkHealth() {
     try {
         const data = await apiGet('/health');
+        const wasLoading = state.serviceInfo?.is_loading_models;
         state.serviceInfo = data;
         const modelCount = (data.loaded_models || []).length;
         const jobs = data.active_jobs || 0;
-        setStatus('online', `${data.device} · ${modelCount} model${modelCount !== 1 ? 's' : ''} · ${jobs} job${jobs !== 1 ? 's' : ''}`);
-        els.logoSub.textContent = `${data.dtype} on ${data.device}`;
+
+        if (data.is_loading_models) {
+            setStatus('connecting', 'Downloading models...');
+            els.logoSub.textContent = 'Downloading models... Please wait.';
+            els.generateBtn.disabled = true;
+        } else {
+            const statusMsg = `${data.device} · ${modelCount} loaded · ${jobs} job${jobs !== 1 ? 's' : ''}`;
+            setStatus('online', statusMsg);
+            els.logoSub.textContent = `${data.dtype} on ${data.device}`;
+            if (!state.currentJobId) {
+                els.generateBtn.disabled = false;
+            }
+        }
+
+        // If loading state changed, refresh models list to update disabled options
+        if (wasLoading !== data.is_loading_models || (state.models.length === 0 && modelCount > 0)) {
+            await loadModels();
+        }
         return true;
     } catch (e) {
         state.serviceInfo = null;
         setStatus('offline', 'Service unavailable');
         els.logoSub.textContent = 'Offline';
+        els.generateBtn.disabled = true;
         return false;
     }
 }
@@ -1450,15 +1931,22 @@ function populateModelSelect() {
     state.models.forEach(m => {
         const opt = document.createElement('option');
         opt.value = m.key;
-        opt.textContent = `${m.key} (${m.type})`;
+        opt.textContent = `${m.key} (${m.type})${m.loaded ? '' : ' (Load on demand)'}`;
         opt.dataset.type = m.type;
         opt.dataset.name = m.name;
+        opt.disabled = false;
         sel.appendChild(opt);
     });
 
     const defaultKey = state.serviceInfo?.default_model;
     if (defaultKey && state.models.some(m => m.key === defaultKey)) {
         sel.value = defaultKey;
+    } else {
+        // Fallback to first model
+        const first = state.models[0];
+        if (first) {
+            sel.value = first.key;
+        }
     }
     updateModelInfo();
 }
@@ -1568,6 +2056,7 @@ function setStage(stage, message = '') {
     els.progressContainer.style.display  = stage === 'processing' ? 'block' : 'none';
     els.previewImage.style.display       = stage === 'completed'   ? 'block' : 'none';
     els.previewOverlay.style.display     = stage === 'completed'   ? 'flex'  : 'none';
+    els.downloadAllBtn.style.display     = 'none';
     els.batchCarousel.style.display      = 'none';
     els.batchThumbs.style.display        = 'none';
     els.previewStage.classList.toggle('has-image', stage === 'completed');
@@ -1618,11 +2107,20 @@ function showResult(job) {
     state.lastUsedSeed = (seedUsed !== undefined && seedUsed !== null) ? seedUsed : null;
     els.useLastSeed.disabled = (state.lastUsedSeed === null);
 
+    state.currentBatchUrls = urls;
+    state.currentJob = job;
+
     const firstUrl = urls[0];
     els.previewImage.src = firstUrl;
     els.previewImage.style.display = 'block';
     els.downloadBtn.dataset.url = firstUrl;
     els.downloadBtn.dataset.filename = `image_${job.job_id}_0.png`;
+
+    if (urls.length > 1) {
+        els.downloadAllBtn.style.display = 'flex';
+    } else {
+        els.downloadAllBtn.style.display = 'none';
+    }
 
     const rd = job.request_details || {};
     const metaParts = [];
@@ -1654,19 +2152,30 @@ function showResult(job) {
         });
     }
 
+    els.previewImage.ondblclick = () => openLightbox(0);
+
     setStage('completed');
 }
 
 function renderGallery() {
+    const filtered = getFilteredHistory();
+    updateGalleryStats();
+
     if (state.history.length === 0) {
         els.galleryGrid.innerHTML = '<div class="gallery-empty">No generations yet · Your history will appear here</div>';
         return;
     }
+    if (filtered.length === 0) {
+        els.galleryGrid.innerHTML = '<div class="gallery-empty">No results match your search</div>';
+        return;
+    }
+
     els.galleryGrid.innerHTML = '';
-    state.history.forEach(item => {
+    filtered.forEach(item => {
         const div = document.createElement('div');
         div.className = 'gallery-item';
         div.title = item.prompt;
+        div.dataset.jobId = item.jobId;
         div.innerHTML = `
             <img src="${item.thumbUrl}" alt="${truncate(item.prompt, 30)}" loading="lazy">
             <div class="gallery-item-overlay">
@@ -1675,6 +2184,10 @@ function renderGallery() {
             </div>
         `;
         div.onclick = () => loadHistoryItem(item);
+        div.oncontextmenu = (e) => {
+            e.preventDefault();
+            showContextMenu(e.clientX, e.clientY, item);
+        };
         els.galleryGrid.appendChild(div);
     });
 }
@@ -1695,12 +2208,21 @@ async function loadHistoryItem(item) {
 }
 
 function addToHistory(job) {
+    const rd = job.request_details || {};
     const entry = {
         jobId: job.job_id,
-        prompt: job.request_details?.prompt || '(no prompt)',
+        prompt: rd.prompt || '(no prompt)',
         timestamp: job.created_at,
         imageCount: job.image_urls?.length || 0,
-        thumbUrl: job.image_urls?.[0] || ''
+        thumbUrl: job.image_urls?.[0] || '',
+        negative_prompt: rd.negative_prompt || '',
+        model_name: rd.model_name || '',
+        width: rd.width || null,
+        height: rd.height || null,
+        steps: rd.num_inference_steps || null,
+        guidance_scale: rd.guidance_scale || null,
+        num_images_per_prompt: rd.num_images_per_prompt || null,
+        seed: rd.seed ?? null
     };
     state.history = state.history.filter(h => h.jobId !== entry.jobId);
     state.history.unshift(entry);
@@ -1947,6 +2469,66 @@ function bindEvents() {
         if (e.target === els.infoModal) closeInfoModal();
     });
 
+    // Theme toggle
+    els.themeToggle.addEventListener('click', toggleTheme);
+
+    // Shortcuts modal
+    els.shortcutsBtn.addEventListener('click', showShortcutsModal);
+    els.shortcutsClose.addEventListener('click', closeShortcutsModal);
+    els.shortcutsModal.addEventListener('click', e => {
+        if (e.target === els.shortcutsModal) closeShortcutsModal();
+    });
+
+    // Surprise me
+    els.surpriseBtn.addEventListener('click', surpriseMe);
+
+    // Lightbox
+    els.lightboxClose.addEventListener('click', closeLightbox);
+    els.lightboxPrev.addEventListener('click', lightboxPrev);
+    els.lightboxNext.addEventListener('click', lightboxNext);
+    els.lightboxOverlay.addEventListener('click', e => {
+        if (e.target === els.lightboxOverlay) closeLightbox();
+    });
+    els.openImageBtn.addEventListener('click', () => openLightbox(0));
+
+    // Download all
+    els.downloadAllBtn.addEventListener('click', downloadAllImages);
+
+    // Gallery search
+    els.gallerySearch.addEventListener('input', () => {
+        renderGallery();
+    });
+
+    // Context menu
+    els.ctxView.addEventListener('click', () => {
+        if (state.contextMenuItem) loadHistoryItem(state.contextMenuItem);
+        hideContextMenu();
+    });
+    els.ctxReuse.addEventListener('click', () => {
+        if (state.contextMenuItem) reuseSettings(state.contextMenuItem);
+        hideContextMenu();
+    });
+    els.ctxCopyPrompt.addEventListener('click', () => {
+        if (state.contextMenuItem) copyText(state.contextMenuItem.prompt || '');
+        hideContextMenu();
+    });
+    els.ctxDelete.addEventListener('click', () => {
+        if (state.contextMenuItem) {
+            state.history = state.history.filter(h => h.jobId !== state.contextMenuItem.jobId);
+            saveStorage(HISTORY_KEY, state.history);
+            renderGallery();
+            updateGalleryStats();
+            showToast('Removed from history', 'success', 1500);
+        }
+        hideContextMenu();
+    });
+    document.addEventListener('click', e => {
+        if (!els.ctxMenu.contains(e.target)) hideContextMenu();
+    });
+    document.addEventListener('contextmenu', e => {
+        if (!e.target.closest('.gallery-item')) hideContextMenu();
+    });
+
     // Keyboard shortcuts
     document.addEventListener('keydown', e => {
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -1954,11 +2536,246 @@ function bindEvents() {
             if (!els.generateBtn.disabled) {
                 els.genForm.dispatchEvent(new Event('submit', { cancelable: true }));
             }
+            return;
         }
-        if (e.key === 'Escape' && els.infoModal.style.display === 'flex') {
-            closeInfoModal();
+
+        if (e.key === 'Escape') {
+            if (els.infoModal.style.display === 'flex') closeInfoModal();
+            if (els.shortcutsModal?.style.display === 'flex') closeShortcutsModal();
+            if (els.lightboxOverlay?.classList.contains('active')) closeLightbox();
+            hideContextMenu();
+            return;
+        }
+
+        if (els.lightboxOverlay?.classList.contains('active')) {
+            if (e.key === 'ArrowLeft') { e.preventDefault(); lightboxPrev(); return; }
+            if (e.key === 'ArrowRight') { e.preventDefault(); lightboxNext(); return; }
+            return;
+        }
+
+        const typing = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName);
+        if (typing) return;
+
+        if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+            e.preventDefault();
+            showShortcutsModal();
+        } else if (e.key === 't' || e.key === 'T') {
+            e.preventDefault();
+            toggleTheme();
+        } else if (e.key === '/') {
+            e.preventDefault();
+            els.prompt.focus();
+        } else if (e.key === 'g' || e.key === 'G') {
+            e.preventDefault();
+            els.gallerySearch?.focus();
         }
     });
+}
+
+// ============================================================================
+// Theme Management
+// ============================================================================
+function initTheme() {
+    const saved = loadStorage(THEME_KEY, 'aurora-dark');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateThemeIcon(saved);
+}
+
+function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') || 'aurora-dark';
+    const next = current === 'aurora-dark' ? 'aurora-light' : 'aurora-dark';
+    document.documentElement.setAttribute('data-theme', next);
+    saveStorage(THEME_KEY, next);
+    updateThemeIcon(next);
+    showToast(`Switched to ${next === 'aurora-dark' ? 'dark' : 'light'} theme`, 'info', 1500);
+}
+
+function updateThemeIcon(theme) {
+    if (!els.themeToggle) return;
+    els.themeToggle.title = theme === 'aurora-dark' ? 'Switch to light theme' : 'Switch to dark theme';
+}
+
+// ============================================================================
+// Lightbox
+// ============================================================================
+function openLightbox(index = 0) {
+    if (!state.currentBatchUrls || state.currentBatchUrls.length === 0) return;
+    state.lightboxIndex = Math.max(0, Math.min(index, state.currentBatchUrls.length - 1));
+    els.lightboxImage.src = state.currentBatchUrls[state.lightboxIndex];
+    els.lightboxOverlay.classList.add('active');
+    updateLightboxNav();
+}
+
+function closeLightbox() {
+    els.lightboxOverlay.classList.remove('active');
+}
+
+function lightboxNext() {
+    if (!state.currentBatchUrls || state.currentBatchUrls.length <= 1) return;
+    state.lightboxIndex = (state.lightboxIndex + 1) % state.currentBatchUrls.length;
+    els.lightboxImage.src = state.currentBatchUrls[state.lightboxIndex];
+    updateLightboxNav();
+}
+
+function lightboxPrev() {
+    if (!state.currentBatchUrls || state.currentBatchUrls.length <= 1) return;
+    state.lightboxIndex = (state.lightboxIndex - 1 + state.currentBatchUrls.length) % state.currentBatchUrls.length;
+    els.lightboxImage.src = state.currentBatchUrls[state.lightboxIndex];
+    updateLightboxNav();
+}
+
+function updateLightboxNav() {
+    const total = state.currentBatchUrls?.length || 0;
+    if (total <= 1) {
+        els.lightboxPrev.style.display = 'none';
+        els.lightboxNext.style.display = 'none';
+        els.lightboxCounter.style.display = 'none';
+    } else {
+        els.lightboxPrev.style.display = 'flex';
+        els.lightboxNext.style.display = 'flex';
+        els.lightboxCounter.style.display = 'block';
+        els.lightboxCounter.textContent = `${state.lightboxIndex + 1} / ${total}`;
+    }
+}
+
+// ============================================================================
+// Prompt Templates
+// ============================================================================
+function renderTemplates() {
+    if (!els.templatesRow) return;
+    els.templatesRow.innerHTML = '';
+    PROMPT_TEMPLATES.forEach(tpl => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'template-btn';
+        btn.textContent = `${tpl.icon} ${tpl.name}`;
+        btn.title = tpl.prompt.slice(0, 100) + '…';
+        btn.addEventListener('click', () => applyTemplate(tpl));
+        els.templatesRow.appendChild(btn);
+    });
+}
+
+function applyTemplate(tpl) {
+    els.prompt.value = tpl.prompt;
+    if (tpl.negative) els.negative_prompt.value = tpl.negative;
+    if (tpl.steps) {
+        els.steps.value = tpl.steps;
+        els.stepsSlider.value = Math.min(100, tpl.steps);
+    }
+    if (tpl.guidance) {
+        els.guidance_scale.value = tpl.guidance;
+        els.guidanceSlider.value = Math.min(20, tpl.guidance);
+    }
+    if (tpl.width) els.width.value = tpl.width;
+    if (tpl.height) els.height.value = tpl.height;
+    updatePromptCount();
+    saveCurrentSettings();
+    els.dimensionPresets.querySelectorAll('.preset-btn').forEach(b => {
+        b.classList.toggle('active',
+            parseInt(b.dataset.w, 10) === tpl.width && parseInt(b.dataset.h, 10) === tpl.height);
+    });
+    showToast(`Template applied: ${tpl.icon} ${tpl.name}`, 'success', 1800);
+}
+
+function surpriseMe() {
+    const tpl = PROMPT_TEMPLATES[Math.floor(Math.random() * PROMPT_TEMPLATES.length)];
+    applyTemplate(tpl);
+}
+
+// ============================================================================
+// Gallery Search & Stats
+// ============================================================================
+function getFilteredHistory() {
+    const query = (els.gallerySearch?.value || '').trim().toLowerCase();
+    if (!query) return state.history;
+    return state.history.filter(item =>
+        (item.prompt || '').toLowerCase().includes(query)
+    );
+}
+
+function updateGalleryStats() {
+    const total = state.history.length;
+    const filtered = getFilteredHistory().length;
+    if (!els.galleryStats) return;
+    if (total === 0) {
+        els.galleryStats.textContent = '';
+    } else if (filtered < total) {
+        els.galleryStats.textContent = `${filtered} / ${total}`;
+    } else {
+        els.galleryStats.textContent = `${total} generation${total !== 1 ? 's' : ''}`;
+    }
+}
+
+// ============================================================================
+// Reuse Settings from History
+// ============================================================================
+function reuseSettings(item) {
+    els.prompt.value = item.prompt || '';
+    if (item.negative_prompt) els.negative_prompt.value = item.negative_prompt;
+    if (item.model_name && state.models.some(m => m.key === item.model_name)) {
+        els.model_name.value = item.model_name;
+        updateModelInfo();
+    }
+    if (item.width) els.width.value = item.width;
+    if (item.height) els.height.value = item.height;
+    if (item.steps) {
+        els.steps.value = item.steps;
+        els.stepsSlider.value = Math.min(100, parseInt(item.steps, 10) || 30);
+    }
+    if (item.guidance_scale) {
+        els.guidance_scale.value = item.guidance_scale;
+        els.guidanceSlider.value = Math.min(20, parseFloat(item.guidance_scale) || 7.5);
+    }
+    if (item.num_images_per_prompt) els.num_images_per_prompt.value = item.num_images_per_prompt;
+    if (item.seed !== null && item.seed !== undefined && item.seed >= 0) {
+        els.seed.value = item.seed;
+    }
+    updatePromptCount();
+    saveCurrentSettings();
+    showToast('Settings loaded into form', 'success', 1800);
+}
+
+// ============================================================================
+// Download All
+// ============================================================================
+async function downloadAllImages() {
+    if (!state.currentBatchUrls || state.currentBatchUrls.length === 0) return;
+    showToast(`Downloading ${state.currentBatchUrls.length} images…`, 'info', 2000);
+    for (let i = 0; i < state.currentBatchUrls.length; i++) {
+        const a = document.createElement('a');
+        a.href = state.currentBatchUrls[i];
+        a.download = `image_${state.currentJob?.job_id || 'batch'}_${i}.png`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        await new Promise(r => setTimeout(r, 300));
+    }
+}
+
+// ============================================================================
+// Context Menu
+// ============================================================================
+function showContextMenu(x, y, item) {
+    state.contextMenuItem = item;
+    els.ctxMenu.style.left = `${x}px`;
+    els.ctxMenu.style.top = `${y}px`;
+    els.ctxMenu.classList.add('active');
+}
+
+function hideContextMenu() {
+    els.ctxMenu.classList.remove('active');
+    state.contextMenuItem = null;
+}
+
+// ============================================================================
+// Shortcuts Modal
+// ============================================================================
+function showShortcutsModal() {
+    els.shortcutsModal.style.display = 'flex';
+}
+
+function closeShortcutsModal() {
+    els.shortcutsModal.style.display = 'none';
 }
 
 // ============================================================================
@@ -1967,10 +2784,13 @@ function bindEvents() {
 async function init() {
     cacheDom();
     bindEvents();
+    initTheme();
+    renderTemplates();
 
     state.history = loadStorage(HISTORY_KEY, []);
     state.settings = loadStorage(SETTINGS_KEY, {});
     renderGallery();
+    updateGalleryStats();
     applySettingsToForm();
 
     const ok = await checkHealth();
@@ -1984,12 +2804,17 @@ async function init() {
     }
 
     // Periodic health re-check
-    setInterval(async () => {
-        const healthy = await checkHealth();
-        if (healthy && els.previewImage.style.display === 'none' && state.history.length === 0) {
-            els.logoSub.textContent = `${state.serviceInfo.dtype} on ${state.serviceInfo.device}`;
-        }
-    }, HEALTH_RECHECK_MS);
+    let healthCheckTimeout = null;
+    function scheduleHealthCheck(delay = HEALTH_RECHECK_MS) {
+        if (healthCheckTimeout) clearTimeout(healthCheckTimeout);
+        healthCheckTimeout = setTimeout(async () => {
+            await checkHealth();
+            // If models are still loading, poll more frequently
+            const nextDelay = state.serviceInfo?.is_loading_models ? LOADING_CHECK_MS : HEALTH_RECHECK_MS;
+            scheduleHealthCheck(nextDelay);
+        }, delay);
+    }
+    scheduleHealthCheck(HEALTH_RECHECK_MS);
 }
 
 if (document.readyState === 'loading') {

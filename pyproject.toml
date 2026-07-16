@@ -19,6 +19,7 @@ dependencies = [
     "accelerate>=0.25.0",
     "Pillow>=9.0.0",
     "toml>=0.10.0",
+    "peft>=0.17.0",
     "pipmaster>=0.5.4"
 ]
 requires-python = ">=3.11"

@@ -1,7 +1,9 @@
-"""OpenImageGen - Open source image generation API using diffusion models.
-
-A model-agnostic FastAPI server with pluggable adapters for Stable Diffusion,
-SDXL, Kandinsky, and other diffusion model families.
+"""
+@file        __init__.py
+@author      ParisNeo
+@description OpenImageGen - Open source image generation API using diffusion models.
+             A model-agnostic FastAPI server with pluggable adapters for Stable Diffusion,
+             SDXL, Kandinsky, and other diffusion model families.
 """
 
 from __future__ import annotations

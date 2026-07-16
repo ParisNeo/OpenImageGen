@@ -1,4 +1,8 @@
-"""FastAPI application: HTTP routes, lifespan, static UI, and route handlers."""
+"""
+@file        app.py
+@author      ParisNeo
+@description FastAPI application: HTTP routes, lifespan, static UI, and route handlers.
+"""
 
 from __future__ import annotations
 
@@ -8,10 +12,10 @@ import time
 import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from .schemas import ImageGenerationRequest, JobStatus, JobSubmissionResponse
@@ -24,7 +28,26 @@ service: Optional[ImageGenService] = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize the service on startup and schedule periodic cleanup."""
+    """
+    Manage the application's startup and shutdown lifecycle.
+
+    On startup:
+        Initializes the global `ImageGenService` instance. If initialization
+        fails, the exception is re-raised, aborting the application boot sequence.
+        Schedules a background asyncio task to periodically invoke
+        `service.cleanup_expired_files` at a configurable interval.
+
+    On shutdown:
+        Gracefully cancels the periodic cleanup background task and awaits
+        its termination, ensuring no lingering file I/O operations are interrupted
+    abruptly.
+
+    Args:
+        app: The FastAPI application instance associated with this lifespan.
+
+    Yields:
+        Passes control to the application's request handling phase.
+    """
     global service
     logger.info("OpenImageGen starting up...")
     try:
@@ -78,6 +101,12 @@ def _require_service() -> ImageGenService:
     return service
 
 
+@app.get("/", include_in_schema=False)
+async def root_redirect():
+    """Redirect root to the Web UI."""
+    return RedirectResponse(url="/webui")
+
+
 @app.get("/health")
 async def health_check() -> Dict:
     """Service health and configuration snapshot."""
@@ -92,6 +121,9 @@ async def health_check() -> Dict:
         "dtype": str(svc.dtype).split(".")[-1],
         "force_gpu": svc.force_gpu,
         "use_gpu": svc.use_gpu,
+        "is_loading_models": svc.is_loading,
+        "is_downloading_models": svc.is_downloading,
+        "download_status": svc.download_status,
         "active_jobs": svc.jobs.count(),
         "output_folder": str(svc.output_folder.resolve()),
         "model_cache_dir": str(svc.model_cache_dir.resolve()),
@@ -108,10 +140,26 @@ async def get_models() -> Dict:
                 "key": key,
                 "type": info.get("type", "unknown"),
                 "name": info.get("name", ""),
+                "loaded": key in svc.pipelines,
+                "downloaded": svc.download_status.get(key) == "completed",
             }
             for key, info in svc.models_config.items()
         ]
     }
+
+
+@app.post("/preload")
+async def preload_models(
+    background_tasks: BackgroundTasks,
+    model_keys: Optional[List[str]] = None,
+):
+    """Trigger background download of model weights without loading them into memory."""
+    svc = _require_service()
+    if svc.is_downloading:
+        raise HTTPException(status_code=409, detail="A download operation is already in progress.")
+    
+    background_tasks.add_task(svc.preload_models, model_keys)
+    return {"status": "preloading_started", "models": model_keys or list(svc.models_config.keys())}
 
 
 @app.post("/submit", response_model=JobSubmissionResponse)

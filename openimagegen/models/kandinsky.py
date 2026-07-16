@@ -1,7 +1,9 @@
-"""Kandinsky 2.x adapter.
-
-Demonstrates the plug-in pattern for a non-SD pipeline family. `negative_prompt`
-is not natively supported by Kandinsky and is silently dropped.
+"""
+@file        kandinsky.py
+@author      ParisNeo
+@description Kandinsky 2.x adapter.
+             Demonstrates the plug-in pattern for a non-SD pipeline family. `negative_prompt`
+             is not natively supported by Kandinsky and is silently dropped.
 """
 
 from __future__ import annotations
@@ -34,6 +36,15 @@ class KandinskyAdapter(BaseModelAdapter):
         )
         return self.apply_optimizations(pipeline, device)
 
+    def download_weights(self, model_name: str, cache_dir: str) -> None:
+        from diffusers import AutoPipelineForText2Image
+        logger.info(f"[{self.type_name}] Pre-fetching weights for {model_name}...")
+        AutoPipelineForText2Image.from_pretrained(
+            model_name,
+            cache_dir=cache_dir,
+            **self.config_overrides,
+        )
+
     def generate(
         self,
         pipeline: Any,
@@ -49,7 +60,6 @@ class KandinskyAdapter(BaseModelAdapter):
         callback_steps: int = 1,
         **extra: Any,
     ) -> List[Image.Image]:
-        # Kandinsky doesn't support negative_prompt; drop it intentionally.
         kwargs = {
             "prompt": prompt,
             "height": height,

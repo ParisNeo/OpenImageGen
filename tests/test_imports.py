@@ -1,4 +1,8 @@
-"""Smoke tests: package imports and built-in adapter auto-registration."""
+"""
+@file        test_imports.py
+@author      ParisNeo
+@description Smoke tests: package imports and built-in adapter auto-registration.
+"""
 
 from __future__ import annotations
 
