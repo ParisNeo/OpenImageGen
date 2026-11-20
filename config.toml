@@ -1,10 +1,14 @@
 [settings]
 default_model = "stable_diffusion_1_5"
-force_gpu = false
+# Fail at startup rather than silently running GPU requests on CPU.
+force_gpu = true
 use_gpu = true
 dtype = "float16"
+auto_download_models = true
 output_folder = "./outputs"
 model_cache_dir = "./models"
+asset_dir = "./model_assets"
+max_asset_upload_gb = 32
 port = 8089
 host = "0.0.0.0"
 file_retention_time = 3600
@@ -14,6 +18,19 @@ cleanup_interval_seconds = 900
 guidance_scale = 7.5
 num_inference_steps = 50
 num_images_per_prompt = 1
+
+[auth]
+enabled = false
+allow_anonymous = true
+
+[execution]
+max_workers = 2
+max_concurrent_jobs_per_user = 1
+
+# Trusted server-side workflow plugins. Only enable for code you have reviewed.
+[plugins]
+enabled = false
+paths = ["./nodes"]
 
 [models.stable_diffusion_1_5]
 name = "runwayml/stable-diffusion-v1-5"
@@ -26,3 +43,25 @@ type = "stable_diffusion_xl"
 [models.flux_schnell]
 name = "black-forest-labs/FLUX.1-schnell"
 type = "flux"
+
+[models.flux_schnell_gguf_q2_k]
+name = "Comfy-Org/FLUX.1-schnell"
+type = "flux_gguf"
+base_repositories = ["black-forest-labs/FLUX.1-schnell"]
+gguf_source = "city96/FLUX.1-schnell-gguf"
+gguf_filename = "flux1-schnell-Q2_K.gguf"
+label = "FLUX.1-schnell · Q2_K"
+quantization = "Q2_K"
+catalog_preset = "flux-schnell-q2-k"
+
+[models.flux_schnell_gguf_q4_k_s]
+name = "black-forest-labs/FLUX.1-schnell"
+type = "flux_gguf"
+base_repositories = ["Comfy-Org/FLUX.1-schnell"]
+gguf_source = "city96/FLUX.1-schnell-gguf"
+gguf_filename = "flux1-schnell-Q4_K_S.gguf"
+label = "FLUX.1-schnell · Q4_K_S"
+quantization = "Q4_K_S"
+catalog_preset = "flux-schnell-q4-k-s"
+
+[auth.users]

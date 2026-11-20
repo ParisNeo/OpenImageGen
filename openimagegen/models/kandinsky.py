@@ -36,14 +36,33 @@ class KandinskyAdapter(BaseModelAdapter):
         )
         return self.apply_optimizations(pipeline, device)
 
-    def download_weights(self, model_name: str, cache_dir: str) -> None:
-        from diffusers import AutoPipelineForText2Image
-        logger.info(f"[{self.type_name}] Pre-fetching weights for {model_name}...")
-        AutoPipelineForText2Image.from_pretrained(
-            model_name,
-            cache_dir=cache_dir,
-            **self.config_overrides,
-        )
+
+
+
+    def download_weights(self, model_name: str, cache_dir: str, progress_callback=None) -> None:
+            from huggingface_hub import snapshot_download
+            from .base import create_progress_tqdm
+            logger.info(f"[{self.type_name}] Pre-fetching weights for {model_name}...")
+            snapshot_download(
+                repo_id=model_name,
+                cache_dir=cache_dir,
+                allow_patterns=[
+                    "*.json",
+                    "*.txt",
+                    "tokenizer/**",
+                    "text_encoder/**",
+                    "unet/**",
+                    "vae/**",
+                    "scheduler/**",
+                    "prior/**",
+                    "image_encoder/**",
+                    "feature_extractor/**",
+                ],
+                tqdm_class=create_progress_tqdm(progress_callback),
+            )
+
+
+
 
     def generate(
         self,

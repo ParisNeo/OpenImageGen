@@ -44,6 +44,9 @@ class JobStore(ABC):
     @abstractmethod
     def count(self) -> int: ...
 
+    @abstractmethod
+    def list_by_owner(self, owner: str) -> List[str]: ...
+
 
 class InMemoryJobStore(JobStore):
     """Thread-safe in-memory job store. Data is lost on process restart."""
@@ -85,3 +88,7 @@ class InMemoryJobStore(JobStore):
     def count(self) -> int:
         with self._lock:
             return len(self._jobs)
+
+    def list_by_owner(self, owner: str) -> List[str]:
+        with self._lock:
+            return [jid for jid, job in self._jobs.items() if job.owner == owner]

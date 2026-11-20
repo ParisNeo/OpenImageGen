@@ -25,24 +25,57 @@ class StableDiffusionAdapter(BaseModelAdapter):
     type_name = "stable_diffusion"
 
     def load_pipeline(self, model_name: str, cache_dir: str, dtype: Any, device: Any) -> Any:
+        from pathlib import Path
         from diffusers import StableDiffusionPipeline
+
         logger.info(f"Loading Stable Diffusion pipeline: {model_name}")
-        pipeline = StableDiffusionPipeline.from_pretrained(
-            model_name,
-            torch_dtype=dtype,
-            cache_dir=cache_dir,
-            **self.config_overrides,
-        )
+        local_path = Path(model_name).expanduser()
+        if local_path.is_file() and local_path.suffix.lower() in {".safetensors", ".ckpt"}:
+            kwargs = dict(self.config_overrides)
+            kwargs.pop("custom_pipeline", None)
+            kwargs.pop("weight_name", None)
+            pipeline = StableDiffusionPipeline.from_single_file(
+                str(local_path),
+                torch_dtype=dtype,
+                cache_dir=cache_dir,
+                local_files_only=True,
+                **kwargs,
+            )
+        else:
+            pipeline = StableDiffusionPipeline.from_pretrained(
+                model_name,
+                torch_dtype=dtype,
+                cache_dir=cache_dir,
+                **self.config_overrides,
+            )
         return self.apply_optimizations(pipeline, device)
 
-    def download_weights(self, model_name: str, cache_dir: str) -> None:
-        from diffusers import StableDiffusionPipeline
-        logger.info(f"[{self.type_name}] Pre-fetching weights for {model_name}...")
-        StableDiffusionPipeline.from_pretrained(
-            model_name,
-            cache_dir=cache_dir,
-            **self.config_overrides,
-        )
+
+
+
+    def download_weights(self, model_name: str, cache_dir: str, progress_callback=None) -> None:
+            from huggingface_hub import snapshot_download
+            from .base import create_progress_tqdm
+            logger.info(f"[{self.type_name}] Pre-fetching weights for {model_name}...")
+            snapshot_download(
+                repo_id=model_name,
+                cache_dir=cache_dir,
+                allow_patterns=[
+                    "*.json",
+                    "*.txt",
+                    "tokenizer/**",
+                    "text_encoder/**",
+                    "unet/**",
+                    "vae/**",
+                    "scheduler/**",
+                    "safety_checker/**",
+                    "feature_extractor/**",
+                ],
+                tqdm_class=create_progress_tqdm(progress_callback),
+            )
+
+
+
 
     def generate(
         self,
@@ -73,6 +106,43 @@ class StableDiffusionAdapter(BaseModelAdapter):
         }
         kwargs = {k: v for k, v in kwargs.items() if v is not None}
         return pipeline(**kwargs).images
+
+    def supports_img2img(self) -> bool:
+        return True
+
+    def generate_img2img(
+        self,
+        pipeline: Any,
+        prompt: str,
+        init_image: Image.Image,
+        negative_prompt: Optional[str] = None,
+        strength: float = 0.75,
+        height: Optional[int] = None,
+        width: Optional[int] = None,
+        num_inference_steps: int = 50,
+        guidance_scale: float = 7.5,
+        num_images_per_prompt: int = 1,
+        generator: Optional[Any] = None,
+        callback: Optional[Any] = None,
+        callback_steps: int = 1,
+        **extra: Any,
+    ) -> List[Image.Image]:
+        from diffusers import StableDiffusionImg2ImgPipeline
+        img2img_pipe = StableDiffusionImg2ImgPipeline(**pipeline.components)
+        kwargs = {
+            "prompt": prompt,
+            "image": init_image,
+            "negative_prompt": negative_prompt,
+            "strength": strength,
+            "num_inference_steps": num_inference_steps,
+            "guidance_scale": guidance_scale,
+            "num_images_per_prompt": num_images_per_prompt,
+            "generator": generator,
+            "callback": callback,
+            "callback_steps": callback_steps,
+        }
+        kwargs = {k: v for k, v in kwargs.items() if v is not None}
+        return img2img_pipe(**kwargs).images
 
     def get_default_params(self) -> dict:
         return {"guidance_scale": 7.5, "num_inference_steps": 50, "num_images_per_prompt": 1}

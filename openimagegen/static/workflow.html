@@ -1,0 +1,1676 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenImageGen · Workflow Editor</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+    --bg: #090c10;
+    --panel: #11161c;
+    --panel-2: #171e26;
+    --input: #0d1218;
+    --border: #29333e;
+    --border-strong: #3a4754;
+    --text: #edf2f7;
+    --muted: #9aa7b4;
+    --dim: #647181;
+    --accent: #10b981;
+    --accent-2: #06b6d4;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --shadow: 0 12px 32px #0009;
+}
+html, body { width: 100%; height: 100%; overflow: hidden; }
+body {
+    background: var(--bg);
+    color: var(--text);
+    font: 13px/1.45 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+button, input, select, textarea { font: inherit; }
+button { color: inherit; }
+.ws-app { height: 100vh; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
+.ws-header {
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 16px;
+    background: #11161cf2;
+    border-bottom: 1px solid var(--border);
+    z-index: 20;
+}
+.ws-brand { display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; flex-shrink: 0; }
+.ws-brand-mark {
+    width: 34px; height: 34px; display: grid; place-items: center; border-radius: 9px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    box-shadow: 0 4px 15px #10b98135;
+}
+.ws-brand h1 { font-size: 14px; line-height: 1.15; }
+.ws-brand small { color: var(--accent); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; }
+.ws-name {
+    width: min(280px, 22vw); min-width: 150px; padding: 8px 10px; color: var(--text);
+    background: var(--input); border: 1px solid var(--border); border-radius: 7px; font-weight: 600;
+}
+.ws-toolbar { margin-left: auto; display: flex; align-items: center; justify-content: flex-end; gap: 6px; flex-wrap: wrap; }
+.ws-api-key, .ws-field input, .ws-field select, .ws-field textarea, .inspector-input {
+    color: var(--text); background: var(--input); border: 1px solid var(--border); border-radius: 5px;
+}
+.ws-api-key { width: 150px; padding: 7px 9px; font-size: 11px; }
+.ws-name:focus, .ws-api-key:focus, .ws-field input:focus, .ws-field select:focus,
+.ws-field textarea:focus, .inspector-input:focus {
+    outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px #10b98125;
+}
+.btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+    min-height: 34px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 7px;
+    background: var(--panel-2); color: var(--muted); font-size: 11px; font-weight: 650; cursor: pointer;
+}
+.btn:hover:not(:disabled) { color: var(--text); border-color: var(--border-strong); background: #202934; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn[hidden] { display: none !important; }
+.btn-primary { color: white; border-color: transparent; background: linear-gradient(135deg, var(--accent), #0891b2); }
+.btn-primary:hover:not(:disabled) { color: white; filter: brightness(1.08); }
+.btn-danger { color: #f87171; }
+.ws-main { min-height: 0; display: grid; grid-template-columns: 176px minmax(0, 1fr) 280px; }
+.ws-palette, .ws-inspector { min-height: 0; overflow-y: auto; background: var(--panel); padding: 14px; }
+.ws-palette { border-right: 1px solid var(--border); }
+.ws-inspector { border-left: 1px solid var(--border); }
+.ws-section-title {
+    margin: 0 0 10px; color: var(--accent); font-size: 10px; font-weight: 750;
+    letter-spacing: .11em; text-transform: uppercase;
+}
+.palette-btn {
+    width: 100%; display: flex; align-items: center; gap: 8px; margin-bottom: 6px; padding: 9px;
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: 7px;
+    color: var(--muted); cursor: pointer; text-align: left; font-size: 12px;
+}
+.palette-btn:hover { color: var(--text); border-color: var(--accent); }
+.palette-dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
+.ws-help { margin-top: 20px; color: var(--dim); font-size: 11px; line-height: 1.55; }
+.ws-help strong { color: var(--muted); }
+.ws-canvas {
+    position: relative; min-width: 0; min-height: 0; overflow: hidden; touch-action: none;
+    background-color: var(--bg);
+    background-image: linear-gradient(#ffffff06 1px, transparent 1px), linear-gradient(90deg, #ffffff06 1px, transparent 1px);
+    cursor: grab;
+}
+.ws-canvas.panning { cursor: grabbing; }
+.ws-world { position: absolute; left: 0; top: 0; width: 5000px; height: 3500px; transform-origin: 0 0; }
+.ws-edges { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 1; }
+.ws-edge { fill: none; stroke-width: 2.2; stroke-linecap: round; opacity: .85; }
+.ws-edge-hit { fill: none; stroke: transparent; stroke-width: 14; pointer-events: stroke; cursor: pointer; }
+.ws-edge-hit:hover + .ws-edge { stroke-width: 3.5; opacity: 1; }
+.ws-node {
+    position: absolute; width: 250px; overflow: visible; background: var(--panel);
+    border: 1px solid var(--border-strong); border-radius: 9px; box-shadow: var(--shadow);
+    z-index: 2; user-select: none;
+}
+.ws-node.selected { border-color: var(--accent); box-shadow: 0 0 0 2px #10b98128, var(--shadow); }
+.ws-node.invalid { border-color: var(--danger); }
+.ws-node.running { border-color: var(--warning); }
+.ws-node-header {
+    height: 32px; display: flex; align-items: center; justify-content: space-between; gap: 6px;
+    padding: 0 8px 0 10px; border-radius: 8px 8px 0 0; color: white;
+    font-size: 11px; font-weight: 750; cursor: grab;
+}
+.ws-node-header:active { cursor: grabbing; }
+.ws-node-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ws-node-controls { display: flex; gap: 4px; }
+.ws-node-control {
+    width: 19px; height: 19px; display: grid; place-items: center; padding: 0;
+    border: 0; border-radius: 4px; background: #0003; color: #ffffffc0; cursor: pointer; font-size: 11px;
+}
+.ws-node-control:hover { background: #0007; color: white; }
+.ws-ports { padding: 5px 0; border-bottom: 1px solid var(--border); }
+.ws-ports:empty { display: none; }
+.ws-port-row { position: relative; height: 24px; display: flex; align-items: center; gap: 8px; padding: 0 11px; }
+.ws-port-row.output-row { justify-content: flex-end; }
+.ws-port-label { color: var(--muted); font-size: 10px; font-weight: 650; text-transform: uppercase; letter-spacing: .04em; }
+.ws-port-row.output-row .ws-port-label { color: var(--dim); }
+.ws-port {
+    position: absolute; top: 6px; width: 12px; height: 12px; padding: 0; border-radius: 50%;
+    background: var(--bg); border: 2px solid var(--port-color, var(--border-strong));
+    cursor: crosshair; z-index: 5; transition: transform .12s, box-shadow .12s;
+}
+.ws-port.input { left: -6px; }
+.ws-port.output { right: -6px; }
+.ws-port:hover, .ws-port.active { transform: scale(1.35); box-shadow: 0 0 9px var(--port-color, var(--accent)); }
+.ws-port.connected { background: var(--port-color, var(--accent)); }
+.ws-port.disabled { opacity: .25; cursor: not-allowed; }
+.ws-node-body { display: grid; gap: 8px; padding: 10px; user-select: text; }
+.ws-node.collapsed .ws-node-body, .ws-node.collapsed .ws-ports { display: none; }
+.ws-field { display: grid; gap: 3px; }
+.ws-field label { color: var(--dim); font-size: 9px; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; }
+.ws-field input, .ws-field select { width: 100%; height: 29px; padding: 4px 7px; font-size: 11px; }
+.ws-field textarea { width: 100%; min-height: 68px; padding: 7px; resize: vertical; font-size: 11px; }
+.ws-field input[type="file"] { height: auto; font-size: 10px; }
+.ws-model-note { color: var(--dim); font-size: 10px; line-height: 1.4; }
+.ws-model-browser { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 5px; }
+.ws-model-browser .btn { min-height: 29px; padding: 4px 7px; }
+.ws-upload-preview { display: none; width: 100%; max-height: 110px; object-fit: cover; border-radius: 5px; border: 1px solid var(--border); }
+.ws-upload-preview.visible { display: block; }
+.ws-canvas-tools {
+    position: absolute; left: 12px; bottom: 12px; z-index: 10; display: flex; gap: 5px;
+    padding: 5px; border: 1px solid var(--border); border-radius: 8px; background: #11161ce8; box-shadow: var(--shadow);
+}
+.ws-canvas-tools .btn { min-height: 28px; padding: 4px 8px; }
+.ws-zoom-label { min-width: 48px; text-align: center; color: var(--muted); font-size: 11px; align-self: center; }
+.inspector-empty { color: var(--dim); text-align: center; padding: 24px 6px; }
+.inspector-title { margin-bottom: 3px; font-size: 14px; font-weight: 700; }
+.inspector-subtitle { margin-bottom: 16px; color: var(--dim); font: 10px ui-monospace, monospace; }
+.inspector-field { display: grid; gap: 4px; margin-bottom: 10px; }
+.inspector-field label { color: var(--dim); font-size: 9px; font-weight: 750; letter-spacing: .05em; text-transform: uppercase; }
+.inspector-input { width: 100%; padding: 7px 8px; font-size: 12px; }
+textarea.inspector-input { min-height: 80px; resize: vertical; }
+.inspector-connections { margin: 16px 0; border-top: 1px solid var(--border); padding-top: 12px; }
+.inspector-connection { display: flex; align-items: center; gap: 6px; padding: 5px 0; color: var(--muted); font-size: 11px; }
+.inspector-connection code { color: var(--accent); }
+.inspector-connection button { margin-left: auto; border: 0; background: none; color: var(--danger); cursor: pointer; }
+.inspector-badge { display: inline-block; margin: 0 4px 6px 0; padding: 3px 6px; border-radius: 4px; background: var(--panel-2); color: var(--muted); font-size: 10px; }
+.ws-footer {
+    min-height: 54px; display: flex; align-items: center; gap: 14px; padding: 9px 16px;
+    background: var(--panel); border-top: 1px solid var(--border);
+}
+.ws-status { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
+.ws-status-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ws-status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); flex: 0 0 auto; }
+.ws-status-dot.running { background: var(--warning); animation: pulse 1.2s infinite; }
+.ws-status-dot.success { background: var(--accent); }
+.ws-status-dot.error { background: var(--danger); }
+@keyframes pulse { 50% { opacity: .35; } }
+.ws-progress { width: min(300px, 28vw); height: 7px; border-radius: 5px; overflow: hidden; background: var(--panel-2); }
+.ws-progress-fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width .25s; }
+.ws-results { display: flex; gap: 7px; }
+.ws-results img { width: 38px; height: 38px; object-fit: cover; border: 1px solid var(--border-strong); border-radius: 5px; cursor: pointer; }
+.ws-result-overlay { position: fixed; inset: 76px 40px 76px; z-index: 190; display: grid; grid-template-rows: auto minmax(0,1fr) auto; gap: 12px; padding: 18px; background: #0b1016f5; border: 1px solid var(--border-strong); border-radius: 14px; box-shadow: 0 24px 80px #000d; backdrop-filter: blur(16px); }
+.ws-result-overlay[hidden] { display: none !important; }
+.ws-result-header, .ws-result-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ws-result-title { font-size: 14px; font-weight: 700; }
+.ws-result-stage { min-height: 0; display: flex; align-items: center; justify-content: center; overflow: auto; }
+.ws-result-image { display: block; max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; background: #000; }
+.ws-result-error { max-width: 520px; color: #fca5a5; text-align: center; white-space: pre-wrap; }
+.ws-result-actions { justify-content: center; flex-wrap: wrap; }
+.ws-toasts { position: fixed; right: 18px; bottom: 72px; z-index: 400; display: grid; gap: 7px; max-width: min(380px, calc(100vw - 36px)); }
+.ws-toast { padding: 10px 13px; border: 1px solid var(--border-strong); border-left: 3px solid var(--accent); border-radius: 7px; background: #1b232deF; box-shadow: var(--shadow); font-size: 12px; }
+.ws-toast.error { border-left-color: var(--danger); }
+.ws-toast.warning { border-left-color: var(--warning); }
+@media (max-width: 1100px) {
+    .ws-main { grid-template-columns: 150px minmax(0, 1fr) 230px; }
+    .ws-api-key { display: none; }
+    .ws-header { gap: 8px; }
+    .btn { padding: 7px; }
+}
+@media (max-width: 760px) {
+    .ws-main { grid-template-columns: 120px minmax(0, 1fr); }
+    .ws-inspector { display: none; }
+    .ws-brand-text, .ws-name { display: none; }
+    .ws-node { width: 225px; }
+}
+</style>
+</head>
+<body>
+<div class="ws-app">
+    <header class="ws-header">
+        <a class="ws-brand" href="/webui" title="Back to Studio">
+            <span class="ws-brand-mark">⌘</span>
+            <span class="ws-brand-text"><h1>OpenImageGen</h1><small>Workflow editor</small></span>
+        </a>
+        <input class="ws-name" id="workflowName" value="untitled_workflow" aria-label="Workflow name">
+        <div class="ws-toolbar">
+            <input class="ws-api-key" id="apiKeyInput" type="password" placeholder="API key (optional)" autocomplete="off" aria-label="API key">
+            <button class="btn" id="loadBtn">📂 Load</button>
+            <button class="btn" id="saveBtn">💾 Save</button>
+            <button class="btn" id="arrangeBtn">↔ Arrange</button>
+            <button class="btn" id="clearBtn">🗑 Clear</button>
+            <button class="btn" id="reloadNodesBtn" title="Discover or reload community nodes">🧩 Nodes</button>
+            <button class="btn" id="downloadsBtn">⬇ Downloads</button>
+            <button class="btn btn-danger" id="cancelBtn" hidden>■ Cancel</button>
+            <button class="btn btn-primary" id="runBtn">▶ Run workflow</button>
+        </div>
+    </header>
+
+    <main class="ws-main">
+        <aside class="ws-palette">
+            <h2 class="ws-section-title">Nodes</h2>
+            <input class="ws-name" id="nodeSearch" placeholder="Search nodes…" aria-label="Search nodes" style="width:100%;min-width:0;margin-bottom:10px;">
+            <div id="nodePalette"></div>
+            <div class="ws-help">
+                <strong>Connect:</strong> drag from a right output port to a left input port, or click each port in sequence.<br><br>
+                <strong>Navigate:</strong> drag empty space to pan, scroll to zoom, and drag headers to move nodes.<br><br>
+                <strong>Disconnect:</strong> click a connected input port. Press Delete to remove the selected node.<br><br>
+                <strong>Generate:</strong> Sampler/Img2Img → Output → Preview Image. Output's image port resolves after generation. Load Image → Preview Image displays an input immediately.
+            </div>
+        </aside>
+
+        <section class="ws-canvas" id="canvas" aria-label="Workflow canvas">
+            <div class="ws-world" id="world">
+                <svg class="ws-edges" id="edges" aria-hidden="true"><g id="edgeGroup"></g></svg>
+            </div>
+            <div class="ws-canvas-tools">
+                <button class="btn" id="zoomOut" title="Zoom out">−</button>
+                <span class="ws-zoom-label" id="zoomLabel">100%</span>
+                <button class="btn" id="zoomIn" title="Zoom in">+</button>
+                <button class="btn" id="fitBtn">Fit</button>
+                <button class="btn" id="resetViewBtn">Reset</button>
+            </div>
+        </section>
+
+        <aside class="ws-inspector" id="inspector">
+            <h2 class="ws-section-title">Inspector</h2>
+            <div class="inspector-empty">Select a node to inspect it.</div>
+        </aside>
+    </main>
+
+    <footer class="ws-footer">
+        <div class="ws-status"><span class="ws-status-dot" id="statusDot"></span><span class="ws-status-text" id="statusText">Ready</span></div>
+        <div class="ws-progress" id="progressBar"><div class="ws-progress-fill" id="progressFill"></div></div>
+        <div class="ws-results" id="results"></div>
+    </footer>
+</div>
+<div class="ws-result-overlay" id="resultOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="resultTitle">
+    <div class="ws-result-header">
+        <span class="ws-result-title" id="resultTitle">Generated images</span>
+        <button class="btn" id="resultClose" type="button">✕ Close</button>
+    </div>
+    <div class="ws-result-stage" id="resultStage"></div>
+    <div class="ws-result-actions" id="resultActions"></div>
+</div>
+<div class="ws-toasts" id="toasts" aria-live="polite"></div>
+
+<script>
+'use strict';
+
+const STORAGE_KEY = 'oig_workflow_v2';
+const LEGACY_STORAGE_KEY = 'oig_workflow_v1';
+const API_KEY_STORAGE = 'oig_api_key_v1';
+const TEMPLATE_STORAGE_KEY = 'oig_node_templates_v1';
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+let NODE_SPECS = {
+    text_prompt: {
+        title: '📝 Prompt', color: '#059669', output: { kind: 'text', label: 'text' }, inputs: [],
+        fields: [{ key: 'text', label: 'Prompt', type: 'textarea', default: 'A serene mountain landscape at golden hour' }]
+    },
+    model: {
+        title: '🤖 Model', color: '#d97706', output: { kind: 'model', label: 'model' }, inputs: [],
+        fields: [{ key: 'model_name', label: 'Checkpoint', type: 'model', default: '' }]
+    },
+    image_loader: {
+        title: '🖼 Load Image', color: '#9333ea', output: { kind: 'image', label: 'image' }, inputs: [],
+        fields: [{ key: 'image_id', label: 'Source image', type: 'upload', default: '' }]
+    },
+    sampler: {
+        title: '⚙ Sampler', color: '#db2777', output: { kind: 'params', label: 'generation params' },
+        inputs: [
+            { slot: 'prompt', label: 'prompt', accepts: 'text', required: true },
+            { slot: 'negative_prompt', label: 'negative', accepts: 'text' },
+            { slot: 'model', label: 'model', accepts: 'model' }
+        ],
+        fields: [
+            { key: 'width', label: 'Width', type: 'number', default: 512, min: 64, max: 2048, step: 8 },
+            { key: 'height', label: 'Height', type: 'number', default: 512, min: 64, max: 2048, step: 8 },
+            { key: 'num_inference_steps', label: 'Steps', type: 'number', default: 30, min: 1, max: 200, step: 1 },
+            { key: 'guidance_scale', label: 'CFG', type: 'number', default: 7.5, min: 0, max: 30, step: .5 },
+            { key: 'seed', label: 'Seed (−1 = random)', type: 'number', default: -1, step: 1 },
+            { key: 'num_images_per_prompt', label: 'Batch', type: 'number', default: 1, min: 1, max: 8, step: 1 }
+        ]
+    },
+    img2img: {
+        title: '🎨 Img2Img', color: '#e11d48', output: { kind: 'params', label: 'generation params' },
+        inputs: [
+            { slot: 'image', label: 'image', accepts: 'image', required: true },
+            { slot: 'prompt', label: 'prompt', accepts: 'text', required: true },
+            { slot: 'negative_prompt', label: 'negative', accepts: 'text' },
+            { slot: 'model', label: 'model', accepts: 'model' }
+        ],
+        fields: [
+            { key: 'strength', label: 'Strength', type: 'number', default: .75, min: .1, max: 1, step: .05 },
+            { key: 'width', label: 'Width', type: 'number', default: 512, min: 64, max: 2048, step: 8 },
+            { key: 'height', label: 'Height', type: 'number', default: 512, min: 64, max: 2048, step: 8 },
+            { key: 'num_inference_steps', label: 'Steps', type: 'number', default: 30, min: 1, max: 200, step: 1 },
+            { key: 'guidance_scale', label: 'CFG', type: 'number', default: 7.5, min: 0, max: 30, step: .5 },
+            { key: 'seed', label: 'Seed (−1 = random)', type: 'number', default: -1, step: 1 },
+            { key: 'num_images_per_prompt', label: 'Batch', type: 'number', default: 1, min: 1, max: 8, step: 1 }
+        ]
+    },
+    output: {
+        title: '🎯 Output', color: '#7c3aed', output: { kind: 'image', label: 'generated image (after run)' },
+        inputs: [{ slot: 'params', label: 'generation params', accepts: 'params', required: true }], fields: []
+    }
+};
+
+const state = {
+    nodes: [], models: [], selectedId: null, nodeCatalog: [],
+    panX: 0, panY: 0, zoom: 1,
+    dragging: null, panning: null, connecting: null,
+    currentJobId: null, websocket: null, pollTimer: null, pollInFlight: false,
+    generatedImageUrls: [],
+    templates: []
+};
+const els = {};
+let saveTimer = null;
+let edgeFrame = null;
+
+function cacheDom() {
+    ['workflowName', 'apiKeyInput', 'loadBtn', 'saveBtn', 'arrangeBtn', 'clearBtn', 'runBtn', 'cancelBtn',
+     'canvas', 'world', 'edges', 'edgeGroup', 'inspector', 'zoomLabel', 'zoomOut', 'zoomIn', 'fitBtn',
+     'reloadNodesBtn', 'resetViewBtn', 'statusDot', 'statusText', 'progressFill', 'results', 'toasts',
+     'resultOverlay', 'resultClose', 'resultStage', 'resultActions', 'resultTitle', 'nodePalette', 'nodeSearch'].forEach(id => {
+        els[id] = document.getElementById(id);
+    });
+}
+
+function uid() { return `n${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`; }
+function getNode(id) { return state.nodes.find(node => node.id === id); }
+function sourceId(reference) { return String(reference).split('.')[0]; }
+function sourceOutput(reference) {
+    const [id, slot] = String(reference).split('.');
+    return slot || NODE_SPECS[getNode(id)?.type]?.outputs?.[0]?.slot;
+}
+function getModel(key) { return state.models.find(model => model.key === key); }
+function nodeElement(id) { return [...els.world.querySelectorAll('.ws-node')].find(el => el.dataset.id === id); }
+
+function showToast(message, type = 'info', duration = 3500) {
+    const toast = document.createElement('div');
+    toast.className = `ws-toast ${type}`;
+    toast.textContent = message;
+    els.toasts.appendChild(toast);
+    setTimeout(() => toast.remove(), duration);
+}
+
+function authHeaders() {
+    let key = els.apiKeyInput?.value.trim() || '';
+    if (!key) {
+        try { key = localStorage.getItem(API_KEY_STORAGE) || ''; } catch {}
+    }
+    return key ? { 'X-API-Key': key } : {};
+}
+
+async function apiFetch(path, options = {}) {
+    const response = await fetch(path, {
+        ...options,
+        headers: { ...authHeaders(), ...(options.headers || {}) }
+    });
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({ detail: `HTTP ${response.status}` }));
+        throw new Error(typeof error.detail === 'string' ? error.detail : JSON.stringify(error.detail));
+    }
+    return response.json();
+}
+
+function scheduleSave() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveLocal, 250);
+}
+
+function saveLocal() {
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(serializeWorkflow(true, false)));
+        if (els.apiKeyInput.value.trim()) localStorage.setItem(API_KEY_STORAGE, els.apiKeyInput.value.trim());
+        else localStorage.removeItem(API_KEY_STORAGE);
+    } catch (error) { console.warn('Could not save workflow:', error); }
+}
+
+function serializeWorkflow(includeViewport = false, includeSecrets = false) {
+    const workflow = {
+        name: els.workflowName.value.trim() || 'untitled_workflow',
+        nodes: state.nodes.map(node => ({
+            id: node.id, type: node.type, x: Math.round(node.x), y: Math.round(node.y),
+            collapsed: Boolean(node.collapsed),
+            params: Object.fromEntries(Object.entries(node.params).filter(([key]) =>
+                includeSecrets || !NODE_SPECS[node.type]?.fields.find(field => field.key === key)?.secret
+            )),
+            inputs: { ...node.inputs }
+        }))
+    };
+    if (includeViewport) workflow.viewport = { panX: state.panX, panY: state.panY, zoom: state.zoom };
+    return workflow;
+}
+
+function normalizeWorkflow(data) {
+    if (!data || !Array.isArray(data.nodes)) throw new Error('Workflow JSON must contain a nodes array.');
+    const ids = new Set();
+    const nodes = data.nodes.map(raw => {
+        if (!NODE_SPECS[raw.type]) throw new Error(`Unknown node type: ${raw.type}`);
+        let id = String(raw.id || uid());
+        if (!/^[A-Za-z0-9_-]+$/.test(id) || ids.has(id)) id = uid();
+        ids.add(id);
+        const params = {};
+        NODE_SPECS[raw.type].fields.forEach(field => {
+            params[field.key] = raw.params?.[field.key] ?? field.default ?? '';
+        });
+        return {
+            id, type: raw.type, params,
+            x: Number.isFinite(raw.x) ? raw.x : 120,
+            y: Number.isFinite(raw.y) ? raw.y : 120,
+            collapsed: Boolean(raw.collapsed), inputs: {}
+        };
+    });
+    data.nodes.forEach((raw, index) => {
+        const target = nodes[index];
+        const validSlots = new Set(NODE_SPECS[target.type].inputs.map(input => input.slot));
+        Object.entries(raw.inputs || {}).forEach(([slot, sourceId]) => {
+            const source = data.nodes.find(node => node.id === String(sourceId).split('.')[0]);
+            if (!source || !validSlots.has(slot)) return;
+            const sourceIndex = data.nodes.indexOf(source);
+            const actualSource = nodes[sourceIndex];
+            const inputSpec = NODE_SPECS[target.type].inputs.find(input => input.slot === slot);
+            if (NODE_SPECS[actualSource.type].output?.kind === inputSpec.accepts) target.inputs[slot] = actualSource.id;
+        });
+    });
+    return { name: String(data.name || 'untitled_workflow'), nodes, viewport: data.viewport };
+}
+
+function loadLocal() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
+        if (!raw) return false;
+        const data = normalizeWorkflow(JSON.parse(raw));
+        state.nodes = data.nodes;
+        els.workflowName.value = data.name;
+        if (data.viewport) {
+            state.panX = Number(data.viewport.panX) || 0;
+            state.panY = Number(data.viewport.panY) || 0;
+            state.zoom = Math.max(.25, Math.min(2, Number(data.viewport.zoom) || 1));
+        }
+        return true;
+    } catch (error) {
+        console.warn('Could not restore workflow:', error);
+        return false;
+    }
+}
+
+function loadNodeTemplates() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(TEMPLATE_STORAGE_KEY) || '[]');
+        state.templates = Array.isArray(saved) ? saved.filter(template =>
+            template && NODE_SPECS[template.type] && typeof template.name === 'string'
+        ) : [];
+    } catch { state.templates = []; }
+}
+
+function saveNodeAsTemplate(node) {
+    const name = prompt('Template name:', `${NODE_SPECS[node.type].title.replace(/^\S+\s*/, '')} preset`);
+    if (!name?.trim()) return;
+    const secretKeys = new Set(NODE_SPECS[node.type].fields.filter(field => field.secret).map(field => field.key));
+    const params = Object.fromEntries(Object.entries(node.params).filter(([key]) => !secretKeys.has(key)));
+    const template = {
+        id: uid(), name: name.trim(), type: node.type,
+        params: JSON.parse(JSON.stringify(params))
+    };
+    state.templates.push(template);
+    try {
+        localStorage.setItem(TEMPLATE_STORAGE_KEY, JSON.stringify(state.templates));
+        renderPalette();
+        showToast(`Template “${template.name}” saved. Find it under My templates.`, 'success');
+    } catch (error) { showToast(`Could not save template: ${error.message}`, 'error'); }
+}
+
+function createNodeFromTemplate(template) {
+    const node = createNode(template.type);
+    if (!node) return;
+    const allowed = new Set(NODE_SPECS[node.type].fields.map(field => field.key));
+    Object.entries(template.params || {}).forEach(([key, value]) => {
+        if (allowed.has(key)) node.params[key] = value;
+    });
+    renderAll();
+    scheduleSave();
+}
+
+function deleteNodeTemplate(template) {
+    if (!confirm(`Delete template “${template.name}”?`)) return;
+    state.templates = state.templates.filter(item => item.id !== template.id);
+    localStorage.setItem(TEMPLATE_STORAGE_KEY, JSON.stringify(state.templates));
+    renderPalette();
+}
+
+function createNode(type, x, y) {
+    if (type === 'output' && state.nodes.some(node => node.type === 'output')) {
+        showToast('A workflow can contain only one Output node.', 'warning');
+        return null;
+    }
+    const spec = NODE_SPECS[type];
+    const params = {};
+    spec.fields.forEach(field => { params[field.key] = field.default ?? ''; });
+    const rect = els.canvas.getBoundingClientRect();
+    const node = {
+        id: uid(), type, params, inputs: {}, collapsed: false,
+        x: x ?? (rect.width * .5 - state.panX) / state.zoom - 125 + Math.random() * 50,
+        y: y ?? (rect.height * .45 - state.panY) / state.zoom - 80 + Math.random() * 50
+    };
+    state.nodes.push(node);
+    selectNode(node.id);
+    renderAll();
+    scheduleSave();
+    return node;
+}
+
+function removeNode(id) {
+    state.nodes = state.nodes.filter(node => node.id !== id);
+    state.nodes.forEach(node => {
+        Object.entries(node.inputs).forEach(([slot, source]) => {
+            if (sourceId(source) === id) delete node.inputs[slot];
+        });
+    });
+    if (state.selectedId === id) state.selectedId = null;
+    cancelConnection();
+    renderAll();
+    scheduleSave();
+}
+
+function selectNode(id) {
+    state.selectedId = id;
+    els.world.querySelectorAll('.ws-node').forEach(element => {
+        element.classList.toggle('selected', element.dataset.id === id);
+    });
+    renderInspector();
+}
+
+function applyViewport() {
+    els.world.style.transform = `translate(${state.panX}px, ${state.panY}px) scale(${state.zoom})`;
+    els.canvas.style.backgroundSize = `${24 * state.zoom}px ${24 * state.zoom}px`;
+    els.canvas.style.backgroundPosition = `${state.panX}px ${state.panY}px`;
+    els.zoomLabel.textContent = `${Math.round(state.zoom * 100)}%`;
+}
+
+function clientToWorld(clientX, clientY) {
+    const rect = els.canvas.getBoundingClientRect();
+    return {
+        x: (clientX - rect.left - state.panX) / state.zoom,
+        y: (clientY - rect.top - state.panY) / state.zoom
+    };
+}
+
+function portPosition(nodeId, direction, slot = null) {
+    const element = nodeElement(nodeId);
+    if (!element) return null;
+    const selector = direction === 'output' ? '.ws-port.output' : `.ws-port.input[data-slot="${slot}"]`;
+    const port = element.querySelector(selector);
+    if (!port) return null;
+    const portRect = port.getBoundingClientRect();
+    return clientToWorld(portRect.left + portRect.width / 2, portRect.top + portRect.height / 2);
+}
+
+function makePath(from, to) {
+    const distance = Math.max(55, Math.abs(to.x - from.x) * .48);
+    return `M ${from.x} ${from.y} C ${from.x + distance} ${from.y}, ${to.x - distance} ${to.y}, ${to.x} ${to.y}`;
+}
+
+function scheduleEdges() {
+    if (edgeFrame) return;
+    edgeFrame = requestAnimationFrame(() => { edgeFrame = null; renderEdges(); });
+}
+
+function renderEdges() {
+    els.edgeGroup.replaceChildren();
+    state.nodes.forEach(target => {
+        Object.entries(target.inputs).forEach(([slot, reference]) => {
+            const actualSourceId = String(reference).split('.')[0];
+            const source = getNode(actualSourceId);
+            const from = portPosition(actualSourceId, 'output');
+            const to = portPosition(target.id, 'input', slot);
+            if (!source || !from || !to) return;
+            const pathData = makePath(from, to);
+            const color = NODE_SPECS[source.type].color;
+
+            const hit = document.createElementNS(SVG_NS, 'path');
+            hit.setAttribute('d', pathData);
+            hit.setAttribute('class', 'ws-edge-hit');
+            hit.style.pointerEvents = 'stroke';
+            hit.addEventListener('dblclick', () => {
+                delete target.inputs[slot];
+                renderAll();
+                scheduleSave();
+            });
+            const path = document.createElementNS(SVG_NS, 'path');
+            path.setAttribute('d', pathData);
+            path.setAttribute('class', 'ws-edge');
+            path.setAttribute('stroke', color);
+            const title = document.createElementNS(SVG_NS, 'title');
+            title.textContent = `${NODE_SPECS[source.type].title} → ${slot} (double-click to disconnect)`;
+            path.appendChild(title);
+            els.edgeGroup.append(hit, path);
+        });
+    });
+    if (state.connecting?.pointer) {
+        const from = portPosition(state.connecting.sourceId, 'output');
+        if (from) {
+            const path = document.createElementNS(SVG_NS, 'path');
+            path.setAttribute('d', makePath(from, state.connecting.pointer));
+            path.setAttribute('class', 'ws-edge');
+            path.setAttribute('stroke', '#10b981');
+            path.setAttribute('stroke-dasharray', '6 5');
+            els.edgeGroup.appendChild(path);
+        }
+    }
+}
+
+function inputSpecFor(node, slot) {
+    return NODE_SPECS[node.type].inputs.find(input => input.slot === slot);
+}
+
+function connectedModel(node) {
+    const modelNode = getNode(node.inputs.model);
+    return modelNode ? getModel(modelNode.params.model_name) : null;
+}
+
+function renderAll() {
+    renderNodes();
+    renderInspector();
+    applyViewport();
+    scheduleEdges();
+}
+
+function renderNodes() {
+    els.world.querySelectorAll('.ws-node').forEach(node => node.remove());
+    state.nodes.forEach(node => {
+        const spec = NODE_SPECS[node.type];
+        const element = document.createElement('article');
+        element.className = `ws-node${node.id === state.selectedId ? ' selected' : ''}${node.collapsed ? ' collapsed' : ''}`;
+        element.dataset.id = node.id;
+        element.style.left = `${node.x}px`;
+        element.style.top = `${node.y}px`;
+
+        const header = document.createElement('header');
+        header.className = 'ws-node-header';
+        header.style.background = spec.color;
+        const title = document.createElement('span');
+        title.className = 'ws-node-title';
+        title.textContent = spec.title;
+        const controls = document.createElement('span');
+        controls.className = 'ws-node-controls';
+        const collapse = document.createElement('button');
+        collapse.className = 'ws-node-control';
+        collapse.type = 'button';
+        collapse.textContent = node.collapsed ? '▸' : '▾';
+        collapse.title = node.collapsed ? 'Expand' : 'Collapse';
+        collapse.addEventListener('click', event => {
+            event.stopPropagation();
+            node.collapsed = !node.collapsed;
+            renderAll();
+            scheduleSave();
+        });
+        const remove = document.createElement('button');
+        remove.className = 'ws-node-control';
+        remove.type = 'button';
+        remove.textContent = '×';
+        remove.title = 'Delete node';
+        remove.addEventListener('click', event => { event.stopPropagation(); removeNode(node.id); });
+        controls.append(collapse, remove);
+        header.append(title, controls);
+        header.addEventListener('pointerdown', event => startNodeDrag(event, node.id));
+        element.appendChild(header);
+
+        const ports = document.createElement('div');
+        ports.className = 'ws-ports';
+        spec.inputs.forEach(input => {
+            const row = document.createElement('div');
+            row.className = 'ws-port-row input-row';
+            const port = document.createElement('button');
+            port.type = 'button';
+            port.className = `ws-port input${node.inputs[input.slot] ? ' connected' : ''}`;
+            port.dataset.slot = input.slot;
+            port.dataset.nodeId = node.id;
+            port.style.setProperty('--port-color', input.accepts === 'text' ? '#10b981' : input.accepts === 'model' ? '#f59e0b' : input.accepts === 'image' ? '#a855f7' : '#06b6d4');
+            port.title = node.inputs[input.slot] ? `Connected to ${node.inputs[input.slot]}; click to disconnect` : `${input.label} input`;
+            port.addEventListener('pointerdown', event => handleInputPointer(event, node.id, input.slot));
+            const label = document.createElement('span');
+            label.className = 'ws-port-label';
+            label.textContent = `${input.label}${input.required ? ' *' : ''}`;
+            row.append(port, label);
+            ports.appendChild(row);
+        });
+        if (spec.output) {
+            const row = document.createElement('div');
+            row.className = 'ws-port-row output-row';
+            const label = document.createElement('span');
+            label.className = 'ws-port-label';
+            label.textContent = spec.output.label;
+            const port = document.createElement('button');
+            port.type = 'button';
+            port.className = `ws-port output${state.connecting?.sourceId === node.id ? ' active' : ''}`;
+            port.dataset.nodeId = node.id;
+            port.style.setProperty('--port-color', spec.color);
+            port.title = `Drag or click to connect ${spec.output.kind}`;
+            port.addEventListener('pointerdown', event => beginConnection(event, node.id));
+            row.append(label, port);
+            ports.appendChild(row);
+        }
+        element.appendChild(ports);
+
+        const body = document.createElement('div');
+        body.className = 'ws-node-body';
+        spec.fields.forEach(field => body.appendChild(createNodeField(node, field)));
+        if (node.type === 'sampler' || node.type === 'img2img') {
+            const model = connectedModel(node);
+            const note = document.createElement('div');
+            note.className = 'ws-model-note';
+            note.textContent = model
+                ? `${model.key} · ${model.supports_negative_prompt ? 'negative prompt supported' : 'no negative prompt'} · ${model.downloaded ? 'cached' : 'auto-download'}`
+                : 'No model connected: the server default will be used.';
+            body.appendChild(note);
+        }
+        const previewUrl = nodePreviewUrl(node);
+        if (previewUrl) {
+            const thumbnail = document.createElement('img');
+            thumbnail.className = 'ws-upload-preview visible';
+            thumbnail.src = previewUrl;
+            thumbnail.alt = node.type === 'output' ? 'Latest generated image' : 'Image preview';
+            thumbnail.title = 'Click to open full size';
+            thumbnail.addEventListener('click', event => {
+                event.stopPropagation();
+                showResultImage(previewUrl, 0);
+            });
+            body.appendChild(thumbnail);
+        }
+        element.appendChild(body);
+        element.addEventListener('pointerdown', () => selectNode(node.id));
+        els.world.appendChild(element);
+    });
+}
+
+function nodePreviewUrl(node) {
+    if (!['output', 'image_preview'].includes(node.type)) return null;
+    if (node.type === 'output') return state.generatedImageUrls[0] || null;
+    const source = getNode(sourceId(node.inputs.image));
+    if (!source) return null;
+    if (source.type === 'output') return state.generatedImageUrls[0] || null;
+    if (source.type === 'image_loader' && source.params.image_id) return `/uploads/${source.params.image_id}`;
+    return null;
+}
+
+function createNodeField(node, field) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'ws-field';
+    const label = document.createElement('label');
+    label.textContent = field.label;
+    wrapper.appendChild(label);
+    let input;
+
+    if (node.type === 'openai_compatible' && field.key === 'model') {
+        const browser = document.createElement('div');
+        browser.className = 'ws-model-browser';
+        input = document.createElement('select');
+        input.dataset.nodeField = field.key;
+        const refresh = document.createElement('button');
+        refresh.type = 'button';
+        refresh.className = 'btn';
+        refresh.textContent = '↻ Models';
+        refresh.title = 'Read available models from the configured remote server';
+        const renderOptions = models => {
+            const selected = node.params.model || '';
+            const values = [...new Set([selected, ...(models || [])].filter(Boolean))];
+            input.replaceChildren(...values.map(value => new Option(value, value)));
+            if (!values.length) input.appendChild(new Option('Scan or enter a model in Inspector', ''));
+            input.value = selected;
+        };
+        node.remoteModels = node.remoteModels || [];
+        renderOptions(node.remoteModels);
+        input.addEventListener('change', () => updateParam(node, field.key, input.value));
+        refresh.addEventListener('click', async () => {
+            refresh.disabled = true;
+            refresh.textContent = 'Scanning…';
+            try {
+                const result = await apiFetch('/v1/nodes/openai_compatible/models', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(node.params)
+                });
+                node.remoteModels = result.models || [];
+                if (!node.remoteModels.includes(node.params.model)) node.params.model = node.remoteModels[0] || '';
+                renderOptions(node.remoteModels);
+                scheduleSave();
+                renderInspector();
+                showToast(`Found ${node.remoteModels.length} remote model${node.remoteModels.length === 1 ? '' : 's'}.`, 'success');
+            } catch (error) {
+                showToast(`Model discovery failed: ${error.message}`, 'error', 7000);
+            } finally {
+                refresh.disabled = false;
+                refresh.textContent = '↻ Models';
+            }
+        });
+        browser.append(input, refresh);
+        wrapper.appendChild(browser);
+        return wrapper;
+    }
+
+    if (field.type === 'textarea') {
+        input = document.createElement('textarea');
+        input.value = node.params[field.key] ?? '';
+        input.addEventListener('input', () => updateParam(node, field.key, input.value));
+    } else if (field.type === 'model') {
+        input = document.createElement('select');
+        state.models.forEach(model => {
+            const option = document.createElement('option');
+            option.value = model.key;
+            option.textContent = `${model.key}${model.downloaded ? '' : ' · download'}`;
+            input.appendChild(option);
+        });
+        if (!state.models.length) input.appendChild(new Option('No models configured', ''));
+        if (!node.params.model_name && state.models[0]) node.params.model_name = state.models[0].key;
+        input.value = node.params.model_name || '';
+        input.addEventListener('change', () => {
+            updateParam(node, field.key, input.value);
+            applyModelDefaults(node);
+            renderAll();
+        });
+    } else if (field.type === 'number') {
+        input = document.createElement('input');
+        input.type = 'number';
+        input.value = node.params[field.key] ?? '';
+        if (field.min !== undefined && field.min !== null) input.min = field.min;
+        if (field.max !== undefined && field.max !== null) input.max = field.max;
+        if (field.step !== undefined && field.step !== null) input.step = field.step;
+        input.addEventListener('input', () => updateParam(node, field.key, input.value === '' ? null : Number(input.value)));
+    } else if (field.type === 'boolean') {
+        input = document.createElement('input');
+        input.type = 'checkbox';
+        input.checked = node.params[field.key] !== false;
+        input.style.width = '18px';
+        input.style.height = '18px';
+        input.addEventListener('change', () => updateParam(node, field.key, input.checked));
+    } else if (field.type === 'password') {
+        input = document.createElement('input');
+        input.type = 'password';
+        input.autocomplete = 'off';
+        input.placeholder = field.placeholder || 'Not saved or exported';
+        input.value = node.params[field.key] ?? '';
+        input.addEventListener('input', () => updateParam(node, field.key, input.value));
+    } else if (field.type === 'select') {
+        input = document.createElement('select');
+        (field.options || []).forEach(option => input.appendChild(new Option(option.label, option.value)));
+        input.value = node.params[field.key] ?? '';
+        input.addEventListener('change', () => updateParam(node, field.key, input.value));
+    } else if (field.type === 'text') {
+        input = document.createElement('input');
+        input.type = 'text';
+        input.value = node.params[field.key] ?? '';
+        input.placeholder = field.placeholder || '';
+        input.addEventListener('input', () => updateParam(node, field.key, input.value));
+    } else if (field.type === 'upload') {
+        input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        const preview = document.createElement('img');
+        preview.className = `ws-upload-preview${node.params.image_id ? ' visible' : ''}`;
+        preview.alt = 'Uploaded source';
+        if (node.params.image_id) preview.src = `/uploads/${node.params.image_id}`;
+        input.addEventListener('change', async () => {
+            const file = input.files?.[0];
+            if (!file) return;
+            const form = new FormData();
+            form.append('file', file);
+            try {
+                setStatus('running', 'Uploading source image…');
+                const result = await apiFetch('/upload', { method: 'POST', body: form });
+                node.params.image_id = result.image_id;
+                preview.src = result.url;
+                preview.classList.add('visible');
+                setStatus('success', 'Source image uploaded.');
+                scheduleSave();
+                renderInspector();
+            } catch (error) {
+                setStatus('error', error.message);
+                showToast(`Upload failed: ${error.message}`, 'error');
+            }
+        });
+        wrapper.appendChild(input);
+        wrapper.appendChild(preview);
+        return wrapper;
+    }
+    input.dataset.nodeField = field.key;
+    input.addEventListener('pointerdown', event => event.stopPropagation());
+    wrapper.appendChild(input);
+    return wrapper;
+}
+
+function updateParam(node, key, value) {
+    node.params[key] = value;
+    document.querySelectorAll(`[data-inspector-field="${key}"]`).forEach(input => {
+        if (state.selectedId === node.id && input.value !== String(value ?? '')) input.value = value ?? '';
+    });
+    scheduleSave();
+}
+
+function applyModelDefaults(modelNode) {
+    const model = getModel(modelNode.params.model_name);
+    if (!model) return;
+    const isFlux = model.type === 'flux' || model.type === 'flux_gguf';
+    state.nodes.forEach(node => {
+        if (node.inputs.model !== modelNode.id || !['sampler', 'img2img'].includes(node.type)) return;
+        node.params.num_inference_steps = isFlux ? 4 : 30;
+        node.params.guidance_scale = isFlux ? 0 : 7.5;
+        if (isFlux) {
+            node.params.width = model.key.includes('q8') ? 1024 : 512;
+            node.params.height = node.params.width;
+        }
+        if (!model.supports_negative_prompt) delete node.inputs.negative_prompt;
+    });
+    scheduleSave();
+}
+
+function beginConnection(event, sourceId) {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    cancelConnection();
+    state.connecting = {
+        sourceId, startX: event.clientX, startY: event.clientY,
+        moved: false, pointer: clientToWorld(event.clientX, event.clientY)
+    };
+    renderNodes();
+    scheduleEdges();
+}
+
+function handleInputPointer(event, targetId, slot) {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const target = getNode(targetId);
+    if (!target) return;
+    if (state.connecting) {
+        completeConnection(targetId, slot);
+    } else if (target.inputs[slot]) {
+        delete target.inputs[slot];
+        renderAll();
+        scheduleSave();
+    } else {
+        showToast('Drag from an output port, or click an output first.', 'info', 2200);
+    }
+}
+
+function completeConnection(targetId, slot, outputSlot = null) {
+    const connecting = state.connecting;
+    const source = getNode(connecting?.sourceId);
+    const target = getNode(targetId);
+    if (!source || !target) return cancelConnection();
+    const input = inputSpecFor(target, slot);
+    const output = NODE_SPECS[source.type].output;
+    if (!input || !output || input.accepts !== output.kind) {
+        const message = output?.kind === 'params' && input?.accepts === 'image'
+            ? 'Generation params are not an image. Connect them to Output and run the workflow. Preview Image accepts Load Image output only.'
+            : `Incompatible ports: ${output?.kind || 'none'} cannot connect to ${input?.accepts || slot}.`;
+        showToast(message, 'error', 6500);
+        return cancelConnection();
+    }
+    if (source.id === target.id || reaches(source, target.id)) {
+        showToast('That connection would create a cycle.', 'error');
+        return cancelConnection();
+    }
+    target.inputs[slot] = outputSlot && outputSlot !== NODE_SPECS[source.type].outputs?.[0]?.slot
+        ? `${source.id}.${outputSlot}` : source.id;
+    cancelConnection(false);
+    renderAll();
+    scheduleSave();
+}
+
+function reaches(start, targetId) {
+    const visited = new Set();
+    const pending = [start];
+    while (pending.length) {
+        const node = pending.pop();
+        if (!node || visited.has(node.id)) continue;
+        if (node.id === targetId) return true;
+        visited.add(node.id);
+        Object.values(node.inputs).forEach(id => { const source = getNode(id); if (source) pending.push(source); });
+    }
+    return false;
+}
+
+function cancelConnection(redraw = true) {
+    state.connecting = null;
+    if (redraw && els.world) { renderNodes(); scheduleEdges(); }
+}
+
+function startNodeDrag(event, id) {
+    if (event.button !== 0 || event.target.closest('button')) return;
+    event.preventDefault();
+    event.stopPropagation();
+    selectNode(id);
+    const node = getNode(id);
+    state.dragging = { id, startX: event.clientX, startY: event.clientY, x: node.x, y: node.y };
+}
+
+function handlePointerMove(event) {
+    if (state.dragging) {
+        const node = getNode(state.dragging.id);
+        if (!node) return;
+        node.x = Math.max(0, state.dragging.x + (event.clientX - state.dragging.startX) / state.zoom);
+        node.y = Math.max(0, state.dragging.y + (event.clientY - state.dragging.startY) / state.zoom);
+        const element = nodeElement(node.id);
+        if (element) { element.style.left = `${node.x}px`; element.style.top = `${node.y}px`; }
+        scheduleEdges();
+    }
+    if (state.panning) {
+        state.panX = state.panning.panX + event.clientX - state.panning.startX;
+        state.panY = state.panning.panY + event.clientY - state.panning.startY;
+        applyViewport();
+        scheduleEdges();
+    }
+    if (state.connecting) {
+        state.connecting.pointer = clientToWorld(event.clientX, event.clientY);
+        if (Math.hypot(event.clientX - state.connecting.startX, event.clientY - state.connecting.startY) > 5) {
+            state.connecting.moved = true;
+        }
+        scheduleEdges();
+    }
+}
+
+function handlePointerUp(event) {
+    if (state.dragging || state.panning) scheduleSave();
+    state.dragging = null;
+    state.panning = null;
+    els.canvas.classList.remove('panning');
+    if (state.connecting?.moved) {
+        const target = document.elementFromPoint(event.clientX, event.clientY)?.closest('.ws-port.input');
+        if (target) completeConnection(target.dataset.nodeId, target.dataset.slot);
+        else cancelConnection();
+    }
+}
+
+function zoomAt(nextZoom, clientX, clientY) {
+    const oldZoom = state.zoom;
+    const zoom = Math.max(.25, Math.min(2, nextZoom));
+    const rect = els.canvas.getBoundingClientRect();
+    const x = clientX ?? rect.left + rect.width / 2;
+    const y = clientY ?? rect.top + rect.height / 2;
+    const worldX = (x - rect.left - state.panX) / oldZoom;
+    const worldY = (y - rect.top - state.panY) / oldZoom;
+    state.panX = x - rect.left - worldX * zoom;
+    state.panY = y - rect.top - worldY * zoom;
+    state.zoom = zoom;
+    applyViewport();
+    scheduleEdges();
+    scheduleSave();
+}
+
+function fitView() {
+    if (!state.nodes.length) return resetView();
+    const elements = state.nodes.map(node => nodeElement(node.id)).filter(Boolean);
+    const minX = Math.min(...state.nodes.map(node => node.x));
+    const minY = Math.min(...state.nodes.map(node => node.y));
+    const maxX = Math.max(...state.nodes.map((node, index) => node.x + (elements[index]?.offsetWidth || 250)));
+    const maxY = Math.max(...state.nodes.map((node, index) => node.y + (elements[index]?.offsetHeight || 150)));
+    const rect = els.canvas.getBoundingClientRect();
+    const zoom = Math.max(.25, Math.min(1.25, Math.min((rect.width - 100) / (maxX - minX), (rect.height - 100) / (maxY - minY))));
+    state.zoom = zoom;
+    state.panX = (rect.width - (maxX - minX) * zoom) / 2 - minX * zoom;
+    state.panY = (rect.height - (maxY - minY) * zoom) / 2 - minY * zoom;
+    applyViewport();
+    scheduleEdges();
+    scheduleSave();
+}
+
+function resetView() {
+    state.panX = 30; state.panY = 30; state.zoom = 1;
+    applyViewport(); scheduleEdges(); scheduleSave();
+}
+
+function arrangeNodes() {
+    const depths = new Map();
+    function depth(node, visiting = new Set()) {
+        if (depths.has(node.id)) return depths.get(node.id);
+        if (visiting.has(node.id)) return 0;
+        visiting.add(node.id);
+        const parents = Object.values(node.inputs).map(getNode).filter(Boolean);
+        const value = parents.length ? Math.max(...parents.map(parent => depth(parent, visiting))) + 1 : 0;
+        depths.set(node.id, value);
+        return value;
+    }
+    const rows = new Map();
+    [...state.nodes].sort((a, b) => depth(a) - depth(b)).forEach(node => {
+        const column = depth(node);
+        const row = rows.get(column) || 0;
+        node.x = 70 + column * 340;
+        node.y = 70 + row * 330;
+        rows.set(column, row + 1);
+    });
+    renderAll();
+    requestAnimationFrame(fitView);
+    scheduleSave();
+}
+
+function renderInspector() {
+    const node = getNode(state.selectedId);
+    els.inspector.replaceChildren();
+    const heading = document.createElement('h2');
+    heading.className = 'ws-section-title';
+    heading.textContent = 'Inspector';
+    els.inspector.appendChild(heading);
+    if (!node) {
+        const empty = document.createElement('div');
+        empty.className = 'inspector-empty';
+        empty.textContent = 'Select a node to inspect it.';
+        els.inspector.appendChild(empty);
+        return;
+    }
+    const spec = NODE_SPECS[node.type];
+    const title = document.createElement('div');
+    title.className = 'inspector-title';
+    title.textContent = spec.title;
+    const subtitle = document.createElement('div');
+    subtitle.className = 'inspector-subtitle';
+    subtitle.textContent = `${node.type} · ${node.id}`;
+    els.inspector.append(title, subtitle);
+
+    spec.fields.filter(field => field.type !== 'upload').forEach(field => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'inspector-field';
+        const label = document.createElement('label');
+        label.textContent = field.label;
+        let input;
+        if (field.type === 'textarea') input = document.createElement('textarea');
+        else if (field.type === 'model') {
+            input = document.createElement('select');
+            state.models.forEach(model => input.appendChild(new Option(model.key, model.key)));
+        } else if (field.type === 'select') {
+            input = document.createElement('select');
+            (field.options || []).forEach(option => input.appendChild(new Option(option.label, option.value)));
+        } else {
+            input = document.createElement('input');
+            input.type = field.type === 'boolean' ? 'checkbox' : field.type === 'password' ? 'password' : field.type === 'number' ? 'number' : 'text';
+            if (field.min !== undefined && field.min !== null) input.min = field.min;
+            if (field.max !== undefined && field.max !== null) input.max = field.max;
+            if (field.step !== undefined && field.step !== null) input.step = field.step;
+        }
+        input.className = 'inspector-input';
+        input.dataset.inspectorField = field.key;
+        if (field.type === 'boolean') input.checked = node.params[field.key] !== false;
+        else input.value = node.params[field.key] ?? '';
+        input.addEventListener(['model', 'select', 'boolean'].includes(field.type) ? 'change' : 'input', () => {
+            const value = field.type === 'boolean' ? input.checked : field.type === 'number' ? (input.value === '' ? null : Number(input.value)) : input.value;
+            updateParam(node, field.key, value);
+            const bodyInput = nodeElement(node.id)?.querySelector(`[data-node-field="${field.key}"]`);
+            if (bodyInput) {
+                if (field.type === 'boolean') bodyInput.checked = value;
+                else bodyInput.value = value ?? '';
+            }
+            if (field.type === 'model') { applyModelDefaults(node); renderAll(); }
+        });
+        wrapper.append(label, input);
+        els.inspector.appendChild(wrapper);
+    });
+
+    if (spec.inputs.length) {
+        const connections = document.createElement('div');
+        connections.className = 'inspector-connections';
+        const connectionTitle = document.createElement('h3');
+        connectionTitle.className = 'ws-section-title';
+        connectionTitle.textContent = 'Inputs';
+        connections.appendChild(connectionTitle);
+        spec.inputs.forEach(input => {
+            const row = document.createElement('div');
+            row.className = 'inspector-connection';
+            const text = document.createElement('span');
+            const source = node.inputs[input.slot];
+            const code = document.createElement('code');
+            code.textContent = input.slot;
+            text.append(code, document.createTextNode(source ? ` ← ${source}` : ' · unconnected'));
+            row.appendChild(text);
+            if (source) {
+                const disconnect = document.createElement('button');
+                disconnect.textContent = '×';
+                disconnect.title = 'Disconnect';
+                disconnect.addEventListener('click', () => { delete node.inputs[input.slot]; renderAll(); scheduleSave(); });
+                row.appendChild(disconnect);
+            }
+            connections.appendChild(row);
+        });
+        els.inspector.appendChild(connections);
+    }
+    const model = connectedModel(node);
+    if (model) {
+        ['Cached: ' + (model.downloaded ? 'yes' : 'no'), 'Img2Img: ' + (model.supports_img2img ? 'yes' : 'no')].forEach(text => {
+            const badge = document.createElement('span'); badge.className = 'inspector-badge'; badge.textContent = text;
+            els.inspector.appendChild(badge);
+        });
+    }
+    const makeTemplate = document.createElement('button');
+    makeTemplate.className = 'btn';
+    makeTemplate.textContent = '★ Convert to reusable template';
+    makeTemplate.style.marginBottom = '8px';
+    makeTemplate.addEventListener('click', () => saveNodeAsTemplate(node));
+    els.inspector.appendChild(makeTemplate);
+    const remove = document.createElement('button');
+    remove.className = 'btn btn-danger';
+    remove.textContent = 'Delete node';
+    remove.addEventListener('click', () => removeNode(node.id));
+    els.inspector.appendChild(remove);
+}
+
+function validateWorkflow() {
+    const errors = [];
+    const outputs = state.nodes.filter(node => ['output', 'text_output', 'image_preview'].includes(node.type));
+    if (!outputs.length) errors.push('Add an Output or Preview node.');
+    state.nodes.forEach(node => {
+        NODE_SPECS[node.type].inputs.forEach(input => {
+            const source = getNode(node.inputs[input.slot]);
+            if (input.required && !source) errors.push(`${NODE_SPECS[node.type].title}: connect required input “${input.label}”.`);
+            if (source && NODE_SPECS[source.type].output?.kind !== input.accepts) errors.push(`${node.id}: invalid ${input.slot} connection.`);
+        });
+        if (node.type === 'text_prompt' && !String(node.params.text || '').trim()) errors.push(`${node.id}: prompt is empty.`);
+        if (node.type === 'model' && !getModel(node.params.model_name)) errors.push(`${node.id}: select a configured model.`);
+        if (node.type === 'image_loader' && !node.params.image_id) errors.push(`${node.id}: upload an image.`);
+        if (['sampler', 'img2img'].includes(node.type)) {
+            ['width', 'height'].forEach(key => {
+                const value = Number(node.params[key]);
+                if (!Number.isFinite(value) || value < 64 || value > 2048 || value % 8) errors.push(`${node.id}: ${key} must be 64–2048 and divisible by 8.`);
+            });
+            const model = connectedModel(node);
+            if (node.type === 'img2img' && model && !model.supports_img2img) errors.push(`${model.key} does not support Img2Img.`);
+        }
+    });
+
+    state.nodes.filter(node => node.type === 'openai_compatible').forEach(node => {
+        if (!node.inputs.prompt && !String(node.params.prompt || '').trim()) errors.push(`${node.id}: enter or connect a remote prompt.`);
+        if (!String(node.params.model || '').trim()) errors.push(`${node.id}: remote model is required.`);
+        if (!String(node.params.base_url || '').trim()) errors.push(`${node.id}: server URL is required.`);
+    });
+    return [...new Set(errors)];
+}
+
+function buildSubmission() {
+    return {
+        name: els.workflowName.value.trim() || 'untitled_workflow',
+        nodes: state.nodes.map(node => {
+            const params = {};
+            Object.entries(node.params).forEach(([key, value]) => {
+                if (value === null || value === undefined || value === '') return;
+                if (key === 'seed' && Number(value) < 0) return;
+                params[key] = value;
+            });
+            const model = connectedModel(node);
+            if (model && !model.supports_negative_prompt) delete params.negative_prompt;
+            return { id: node.id, type: node.type, params, inputs: { ...node.inputs } };
+        })
+    };
+}
+
+async function runWorkflow() {
+    if (state.currentJobId) return showToast('A workflow is already running.', 'info');
+    const errors = validateWorkflow();
+    els.world.querySelectorAll('.ws-node').forEach(node => node.classList.remove('invalid'));
+    if (errors.length) {
+        setStatus('error', errors[0]);
+        showToast(errors.slice(0, 3).join('\n'), 'error', 6500);
+        return;
+    }
+    saveLocal();
+    state.generatedImageUrls = [];
+    renderNodes();
+    els.runBtn.disabled = true;
+    els.cancelBtn.hidden = false;
+    setProgress(0);
+    setStatus('running', 'Submitting workflow…');
+    window.OIGDownloads?.open();
+    try {
+        const result = await apiFetch('/v1/workflows/submit', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(buildSubmission())
+        });
+        state.currentJobId = result.job_id;
+        setStatus('running', 'Queued for generation…');
+        trackJob(result.job_id);
+        window.OIGDownloads?.refresh();
+    } catch (error) {
+        resetRunControls();
+        setStatus('error', error.message);
+        showToast(error.message, 'error', 7000);
+    }
+}
+
+function trackJob(jobId) {
+    stopTracking(false);
+    pollJob(jobId);
+    state.pollTimer = setInterval(() => pollJob(jobId), 1500);
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    try {
+        const socket = new WebSocket(`${protocol}//${location.host}/ws/${jobId}`);
+        state.websocket = socket;
+        socket.onmessage = event => {
+            try { handleJob(JSON.parse(event.data)); } catch {}
+        };
+        socket.onopen = () => pollJob(jobId);
+        socket.onerror = () => socket.close();
+    } catch {}
+}
+
+async function pollJob(jobId) {
+    if (state.currentJobId !== jobId || state.pollInFlight) return;
+    state.pollInFlight = true;
+    try { handleJob(await apiFetch(`/status/${jobId}`)); }
+    catch (error) {
+        if (state.currentJobId === jobId) setStatus('running', `Reconnecting… ${error.message}`);
+    } finally { state.pollInFlight = false; }
+}
+
+function handleJob(job) {
+    if (job.job_id !== state.currentJobId) return;
+    if (job.status === 'pending') {
+        setProgress(0); setStatus('running', 'Waiting for a generation worker…');
+    } else if (job.status === 'processing') {
+        setProgress(job.progress || 0);
+        setStatus('running', job.message || 'Generating…');
+        if ((job.message || '').toLowerCase().includes('model')) window.OIGDownloads?.refresh();
+    } else if (job.status === 'completed') {
+        setProgress(100); setStatus('success', job.message || 'Workflow completed.');
+        renderResults(job.image_urls || []);
+        finishJob();
+    } else if (job.status === 'failed') {
+        setStatus('error', job.message || 'Workflow failed.');
+        showToast(job.message || 'Workflow failed.', 'error', 9000);
+        finishJob();
+    } else if (job.status === 'cancelled') {
+        setStatus('warning', 'Workflow cancelled.'); finishJob();
+    }
+}
+
+function stopTracking(clearJob = true) {
+    clearInterval(state.pollTimer);
+    state.pollTimer = null;
+    state.pollInFlight = false;
+    if (state.websocket) { state.websocket.onclose = null; state.websocket.close(); state.websocket = null; }
+    if (clearJob) state.currentJobId = null;
+}
+
+function finishJob() {
+    stopTracking();
+    resetRunControls();
+    loadModels();
+}
+
+function resetRunControls() {
+    els.runBtn.disabled = false;
+    els.cancelBtn.hidden = true;
+}
+
+async function cancelJob() {
+    if (!state.currentJobId) return;
+    try {
+        await apiFetch(`/cancel/${state.currentJobId}`, { method: 'POST' });
+        setStatus('warning', 'Cancelling…');
+    } catch (error) { showToast(error.message, 'error'); }
+}
+
+function renderResults(urls) {
+    state.generatedImageUrls = urls;
+    renderNodes();
+    els.results.replaceChildren();
+    els.resultStage.replaceChildren();
+    els.resultActions.replaceChildren();
+    if (!urls.length) {
+        els.resultOverlay.hidden = true;
+        showToast('The job completed but returned no image URLs.', 'error', 7000);
+        return;
+    }
+
+    urls.forEach((url, index) => {
+        const image = document.createElement('img');
+        image.src = url;
+        image.alt = `Generated image ${index + 1}`;
+        image.title = 'Open full size';
+        image.addEventListener('click', () => showResultImage(url, index));
+        els.results.appendChild(image);
+    });
+
+    showResultImage(urls[0], 0);
+    urls.forEach((url, index) => {
+        const open = document.createElement('a');
+        open.className = 'btn';
+        open.href = url;
+        open.target = '_blank';
+        open.rel = 'noopener';
+        open.textContent = `Open image ${index + 1}`;
+        const download = document.createElement('a');
+        download.className = 'btn btn-primary';
+        download.href = url;
+        download.download = `openimagegen-${index + 1}.png`;
+        download.textContent = `Download ${index + 1}`;
+        els.resultActions.append(open, download);
+    });
+    showToast(`Generated ${urls.length} image${urls.length === 1 ? '' : 's'}.`, 'success');
+}
+
+function showResultImage(url, index) {
+    els.resultOverlay.hidden = false;
+    els.resultStage.replaceChildren();
+    els.resultTitle.textContent = `Generated image ${index + 1}`;
+    const loading = document.createElement('div');
+    loading.className = 'inspector-empty';
+    loading.textContent = 'Loading image…';
+    els.resultStage.appendChild(loading);
+    const image = document.createElement('img');
+    image.className = 'ws-result-image';
+    image.alt = `Generated image ${index + 1}`;
+    image.addEventListener('load', () => {
+        loading.remove();
+        els.resultStage.appendChild(image);
+    });
+    image.addEventListener('error', () => {
+        els.resultStage.replaceChildren();
+        const error = document.createElement('div');
+        error.className = 'ws-result-error';
+        error.textContent = `The browser could not load ${url}. Use “Open image” below to inspect the server response.`;
+        els.resultStage.appendChild(error);
+    });
+    image.src = `${url}${url.includes('?') ? '&' : '?'}t=${Date.now()}`;
+}
+
+function setStatus(kind, text) {
+    els.statusText.textContent = text;
+    els.statusText.title = text;
+    els.statusDot.className = `ws-status-dot${['running', 'success', 'error'].includes(kind) ? ` ${kind}` : ''}`;
+}
+
+function setProgress(value) {
+    els.progressFill.style.width = `${Math.max(0, Math.min(100, Number(value) || 0))}%`;
+}
+
+function normalizeNodeSpec(spec) {
+    return {
+        ...spec,
+        title: `${spec.icon || '🧩'} ${spec.title}`,
+        inputs: (spec.inputs || []).map(input => ({ ...input, accepts: input.kind })),
+        output: spec.outputs?.[0] ? { ...spec.outputs[0], kind: spec.outputs[0].kind } : null
+    };
+}
+
+async function reloadNodes() {
+    try {
+        await apiFetch('/v1/nodes/reload', { method: 'POST' });
+        await loadNodeSpecs();
+        renderAll();
+        showToast('Community nodes reloaded.', 'success');
+    } catch (error) {
+        showToast(error.message, 'warning', 6000);
+    }
+}
+
+function renderPalette() {
+    const query = (els.nodeSearch.value || '').trim().toLowerCase();
+    els.nodePalette.replaceChildren();
+    let category = '';
+    state.nodeCatalog.filter(spec => !query || `${spec.title} ${spec.type} ${spec.category} ${spec.description}`.toLowerCase().includes(query)).forEach(spec => {
+        if (spec.category !== category) {
+            category = spec.category;
+            const heading = document.createElement('h3');
+            heading.className = 'ws-section-title';
+            heading.style.marginTop = '12px';
+            heading.textContent = category;
+            els.nodePalette.appendChild(heading);
+        }
+        const button = document.createElement('button');
+        button.className = 'palette-btn';
+        button.dataset.type = spec.type;
+        button.title = spec.description || spec.title;
+        const dot = document.createElement('span');
+        dot.className = 'palette-dot';
+        dot.style.background = spec.color;
+        button.append(dot, document.createTextNode(`${spec.icon || '🧩'} ${spec.title}`));
+        button.addEventListener('click', () => createNode(spec.type));
+        els.nodePalette.appendChild(button);
+    });
+    const templates = state.templates.filter(template =>
+        !query || `${template.name} ${template.type}`.toLowerCase().includes(query)
+    );
+    if (templates.length) {
+        const heading = document.createElement('h3');
+        heading.className = 'ws-section-title';
+        heading.style.marginTop = '12px';
+        heading.textContent = 'My templates';
+        els.nodePalette.appendChild(heading);
+    }
+    templates.forEach(template => {
+        const spec = NODE_SPECS[template.type];
+        const button = document.createElement('button');
+        button.className = 'palette-btn';
+        button.title = 'Click to add this configured node · right-click to delete the template';
+        const dot = document.createElement('span');
+        dot.className = 'palette-dot';
+        dot.style.background = spec.color;
+        button.append(dot, document.createTextNode(`★ ${template.name}`));
+        button.addEventListener('click', () => createNodeFromTemplate(template));
+        button.addEventListener('contextmenu', event => {
+            event.preventDefault();
+            deleteNodeTemplate(template);
+        });
+        els.nodePalette.appendChild(button);
+    });
+}
+
+async function loadNodeSpecs() {
+    const result = await apiFetch('/v1/nodes');
+    state.nodeCatalog = result.nodes || [];
+    const dynamicSpecs = {};
+    state.nodeCatalog.forEach(spec => { dynamicSpecs[spec.type] = normalizeNodeSpec(spec); });
+    NODE_SPECS = { ...NODE_SPECS, ...dynamicSpecs };
+    renderPalette();
+}
+
+async function loadModels() {
+    try {
+        const result = await apiFetch('/models');
+        state.models = result.available_models || [];
+        state.nodes.filter(node => node.type === 'model').forEach(node => {
+            if (!getModel(node.params.model_name)) node.params.model_name = state.models[0]?.key || '';
+        });
+        renderAll();
+    } catch (error) {
+        showToast(`Could not load models: ${error.message}`, 'error');
+    }
+}
+
+function seedWorkflow() {
+    const prompt = createNode('text_prompt', 60, 70);
+    const model = createNode('model', 60, 360);
+    const sampler = createNode('sampler', 410, 70);
+    const output = createNode('output', 770, 120);
+    sampler.inputs.prompt = prompt.id;
+    sampler.inputs.model = model.id;
+    output.inputs.params = sampler.id;
+    state.selectedId = sampler.id;
+    renderAll();
+    scheduleSave();
+}
+
+function bindEvents() {
+    els.nodeSearch.addEventListener('input', renderPalette);
+    els.reloadNodesBtn.addEventListener('click', reloadNodes);
+    els.runBtn.addEventListener('click', runWorkflow);
+    els.cancelBtn.addEventListener('click', cancelJob);
+    els.arrangeBtn.addEventListener('click', arrangeNodes);
+    els.fitBtn.addEventListener('click', fitView);
+    els.resetViewBtn.addEventListener('click', resetView);
+    els.zoomIn.addEventListener('click', () => zoomAt(state.zoom * 1.2));
+    els.zoomOut.addEventListener('click', () => zoomAt(state.zoom / 1.2));
+    els.workflowName.addEventListener('input', scheduleSave);
+    els.apiKeyInput.addEventListener('change', scheduleSave);
+    els.resultClose.addEventListener('click', () => { els.resultOverlay.hidden = true; });
+
+    els.saveBtn.addEventListener('click', () => {
+        const blob = new Blob([JSON.stringify(serializeWorkflow(), null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${els.workflowName.value.trim() || 'workflow'}.json`;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        showToast('Workflow exported.', 'success');
+    });
+
+    els.loadBtn.addEventListener('click', () => {
+        const input = document.createElement('input');
+        input.type = 'file'; input.accept = '.json,application/json';
+        input.addEventListener('change', async () => {
+            try {
+                const data = normalizeWorkflow(JSON.parse(await input.files[0].text()));
+                state.nodes = data.nodes;
+                state.selectedId = null;
+                els.workflowName.value = data.name;
+                renderAll();
+                requestAnimationFrame(fitView);
+                scheduleSave();
+                showToast('Workflow loaded.', 'success');
+            } catch (error) { showToast(`Load failed: ${error.message}`, 'error'); }
+        });
+        input.click();
+    });
+
+    els.clearBtn.addEventListener('click', () => {
+        if (!state.nodes.length || !confirm('Remove all nodes from this workflow?')) return;
+        state.nodes = []; state.selectedId = null;
+        cancelConnection(false); renderAll(); scheduleSave();
+    });
+
+    els.canvas.addEventListener('pointerdown', event => {
+        if (event.target !== els.canvas && event.target !== els.world && event.target !== els.edges) return;
+        if (event.button !== 0 && event.button !== 1) return;
+        cancelConnection(false);
+        state.selectedId = null;
+        renderNodes(); renderInspector();
+        state.panning = { startX: event.clientX, startY: event.clientY, panX: state.panX, panY: state.panY };
+        els.canvas.classList.add('panning');
+        event.preventDefault();
+    });
+    els.canvas.addEventListener('wheel', event => {
+        event.preventDefault();
+        zoomAt(state.zoom * (event.deltaY > 0 ? .9 : 1.1), event.clientX, event.clientY);
+    }, { passive: false });
+    document.addEventListener('pointermove', handlePointerMove);
+    document.addEventListener('pointerup', handlePointerUp);
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape') {
+            cancelConnection();
+            els.resultOverlay.hidden = true;
+        }
+        if ((event.key === 'Delete' || event.key === 'Backspace') && state.selectedId &&
+            !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) {
+            event.preventDefault(); removeNode(state.selectedId);
+        }
+        if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') { event.preventDefault(); runWorkflow(); }
+    });
+    window.addEventListener('resize', scheduleEdges);
+}
+
+async function init() {
+    cacheDom();
+    try { els.apiKeyInput.value = localStorage.getItem(API_KEY_STORAGE) || ''; } catch {}
+    bindEvents();
+    try { await loadNodeSpecs(); } catch (error) { showToast(`Using built-in nodes: ${error.message}`, 'warning'); }
+    loadNodeTemplates();
+    renderPalette();
+    const restored = loadLocal();
+    renderAll();
+    if (!restored || !state.nodes.length) seedWorkflow();
+    else if (!localStorage.getItem(STORAGE_KEY)) scheduleSave();
+    await loadModels();
+    requestAnimationFrame(() => restored ? fitView() : resetView());
+}
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+else init();
+</script>
+<script src="/static/downloads.js"></script>
+</body>
+</html>

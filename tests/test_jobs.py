@@ -16,6 +16,28 @@ from openimagegen.schemas import JobStatus
 
 
 def _make_job(job_id: str, expires_at: float, status: str = "pending") -> JobStatus:
+    """Build a minimal ``JobStatus`` instance for use in test assertions.
+
+    This factory helper reduces boilerplate by constructing a ``JobStatus``
+    with sensible defaults — ``created_at`` is set to 100 seconds before
+    ``expires_at`` — so individual tests only need to specify the values
+    that are relevant to their scenario.
+
+    Parameters
+    ----------
+    job_id:
+        Unique identifier for the job.
+    expires_at:
+        Unix timestamp at which the job should expire.
+    status:
+        Initial lifecycle status of the job (defaults to ``"pending"``).
+
+    Returns
+    -------
+    JobStatus
+        A fully-populated status object ready for insertion into a
+        ``JobStore`` implementation.
+    """
     return JobStatus(
         job_id=job_id, status=status,
         created_at=expires_at - 100, expires_at=expires_at,

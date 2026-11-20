@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 from .models import get_registry
 
@@ -22,8 +22,12 @@ def download_model(
     model_type: str,
     cache_dir: str,
     config_overrides: Optional[Dict[str, Any]] = None,
+    progress_callback: Optional[Callable[[int], None]] = None,
 ) -> bool:
     """Download a model checkpoint into the specified cache directory.
+
+    The final adapter error is preserved in ``last_download_error`` so API jobs
+    can show actionable details rather than a generic network/permission message.
     
     Uses the registered adapter to determine the correct diffusers classes
     and fetches only the checkpoint files without loading them into memory.
@@ -46,16 +50,22 @@ def download_model(
         
     overrides = config_overrides or {}
     adapter = adapter_cls(**overrides)
-    
+
+    if Path(model_name).expanduser().is_file():
+        logger.info(f"Local model file is ready: {model_name}")
+        return True
+
     logger.info(f"Starting download for {model_name} (type: {model_type}) into {cache_dir}...")
     
     try:
         adapter.download_weights(
             model_name=model_name,
             cache_dir=cache_dir,
+            progress_callback=progress_callback,
         )
         logger.info(f"Successfully downloaded {model_name}.")
         return True
     except Exception as e:
+        adapter.last_download_error = str(e)
         logger.error(f"Failed to download {model_name}: {e}", exc_info=True)
         return False

@@ -2,12 +2,18 @@ fastapi>=0.100.0
 uvicorn[standard]>=0.20.0
 pydantic>=2.0.0
 torch>=2.0.0
-diffusers>=0.26.0 # Ensure a recent version for latest pipelines
+diffusers>=0.35.0 # GGUF quantization support
 peft>=0.17.0     # Required at import time by current diffusers releases
-transformers>=4.30.0
+transformers>=4.44.0
 accelerate>=0.25.0
-Pillow>=9.0.0     # For image saving
+gguf>=0.10.0
+optimum-quanto>=0.2.4
+sentencepiece>=0.2.0
+Pillow>=9.0.0     # For image saving and PNG metadata
+python-multipart>=0.0.6  # For file upload endpoints
+websockets>=11.0        # For WebSocket progress streaming
 toml>=0.10.0
 huggingface_hub>=0.20.0
-# sentencepiece # (Potentially needed by some tokenizers like T5)
+tqdm>=4.65.0
+# sentencepiece is installed above for FLUX/T5 tokenizers.
 # opencv-python # (Potentially needed by some pipelines/utility functions)

@@ -15,5 +15,6 @@ from . import stable_diffusion  # noqa: F401
 from . import stable_diffusion_xl  # noqa: F401
 from . import kandinsky  # noqa: F401
 from . import flux  # noqa: F401
+from . import gguf  # noqa: F401
 
 __all__ = ["BaseModelAdapter", "ModelRegistry", "get_registry"]

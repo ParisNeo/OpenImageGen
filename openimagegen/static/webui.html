@@ -81,6 +81,25 @@ button { font-family: inherit; }
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
     z-index: 50;
+    position: relative;
+}
+
+.header-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: transparent;
+    z-index: 10;
+}
+
+.header-progress-fill {
+    height: 100%;
+    background: var(--gradient-accent);
+    width: 0%;
+    transition: width 0.4s ease;
+    box-shadow: 0 0 6px var(--accent-glow);
 }
 
 .app-main {
@@ -144,6 +163,38 @@ button { font-family: inherit; }
     align-items: center;
     gap: 10px;
 }
+
+.api-key-input {
+    width: 160px;
+    padding: 7px 10px;
+    font-size: 11px;
+}
+
+.gguf-catalog-list { display: grid; gap: 10px; }
+.gguf-preset {
+    padding: 14px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+}
+.gguf-preset.recommended { border-color: var(--accent); }
+.gguf-preset-title { font-size: 13px; font-weight: 700; }
+.gguf-preset-meta { font-size: 11px; color: var(--accent); margin: 3px 0; }
+.gguf-preset-description { font-size: 12px; color: var(--text-secondary); }
+.gguf-preset-note { font-size: 10px; color: var(--text-tertiary); margin: 8px 0; }
+.gguf-preset-actions { display: flex; align-items: center; gap: 8px; }
+.gguf-preset-actions button {
+    padding: 7px 10px;
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 11px;
+}
+.gguf-preset-actions button:disabled { opacity: .45; cursor: default; }
+.gguf-preset-status { font-size: 11px; color: var(--text-secondary); }
 
 .icon-button {
     width: 34px;
@@ -466,6 +517,27 @@ input[type="range"].slider-mini::-moz-range-thumb     { width: 14px; height: 14p
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.model-action-btn {
+    width: 100%;
+    margin-top: 10px;
+    padding: 8px 12px;
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.model-action-btn:hover {
+    background: var(--accent);
+    color: white;
 }
 
 /* Generate button */
@@ -1361,6 +1433,117 @@ body, .app-header, .controls-panel, .panel-section, .preview-stage,
     .controls-panel { padding: 16px; }
     .gallery-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
 }
+
+/* ==========================================================================
+   Mode Toggle
+========================================================================== */
+.mode-toggle {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 3px;
+}
+.mode-toggle-btn {
+    flex: 1;
+    padding: 8px;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.mode-toggle-btn:hover { color: var(--text-primary); }
+.mode-toggle-btn.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border: 1px solid var(--accent);
+}
+
+/* ==========================================================================
+   Upload Zone
+========================================================================== */
+.upload-zone {
+    border: 2px dashed var(--border-strong);
+    border-radius: 10px;
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+}
+.upload-zone:hover { border-color: var(--accent); background: var(--accent-soft); }
+.upload-zone.dragover { border-color: var(--accent); background: var(--accent-soft); transform: scale(1.01); }
+.upload-zone.has-image { padding: 8px; border-style: solid; }
+.upload-zone img { max-width: 100%; max-height: 180px; border-radius: 8px; display: block; margin: 0 auto; }
+.upload-placeholder { color: var(--text-tertiary); }
+.upload-placeholder span { font-size: 32px; display: block; margin-bottom: 8px; }
+.upload-placeholder p { font-size: 12px; }
+.upload-clear {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-strong);
+    border-radius: 50%;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+.upload-clear:hover { background: var(--error); color: white; border-color: var(--error); }
+
+/* ==========================================================================
+   Gallery Favorites
+========================================================================== */
+.gallery-fav-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    background: rgba(0, 0, 0, 0.6);
+    border: none;
+    border-radius: 50%;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    opacity: 0;
+    transition: all 0.2s;
+    z-index: 2;
+}
+.gallery-item:hover .gallery-fav-btn { opacity: 1; }
+.gallery-fav-btn.favorited { color: var(--warning); opacity: 1; }
+.gallery-fav-btn:hover { transform: scale(1.15); }
+.fav-filter {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+.fav-filter.active { color: var(--warning); border-color: var(--warning); background: rgba(245, 158, 11, 0.1); }
+.fav-filter:hover { border-color: var(--border-strong); }
 </style>
 </head>
 <body>
@@ -1380,6 +1563,16 @@ body, .app-header, .controls-panel, .panel-section, .preview-stage,
         </div>
     </div>
     <div class="header-actions">
+        <input type="password" id="apiKeyInput" class="api-key-input" placeholder="API key (optional)" aria-label="API key" autocomplete="off">
+        <button class="icon-button" id="ggufCatalogBtn" title="GGUF model catalog" aria-label="GGUF model catalog" style="width:auto;padding:0 10px;font-size:11px;font-weight:700;">GGUF</button>
+        <a href="/workflow" class="icon-button" title="Node workflow editor" aria-label="Node workflow editor" style="text-decoration:none;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="5" cy="6" r="2"></circle>
+                <circle cx="19" cy="6" r="2"></circle>
+                <circle cx="12" cy="18" r="2"></circle>
+                <path d="M7 6h10M6.5 8l5 8M17.5 8l-5 8"></path>
+            </svg>
+        </a>
         <button class="icon-button" id="themeToggle" title="Toggle theme" aria-label="Toggle theme">
             <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
@@ -1414,6 +1607,9 @@ body, .app-header, .controls-panel, .panel-section, .preview-stage,
             <span id="statusText">Connecting</span>
         </div>
     </div>
+    <div class="header-progress" id="headerProgress" style="display:none;">
+        <div class="header-progress-fill" id="headerProgressFill"></div>
+    </div>
 </header>
 
 <main class="app-main">
@@ -1423,6 +1619,21 @@ body, .app-header, .controls-panel, .panel-section, .preview-stage,
 
             <section class="panel-section">
                 <h2>Prompt</h2>
+                <div class="mode-toggle" id="modeToggle">
+                    <button type="button" class="mode-toggle-btn active" data-mode="text2img">✏️ Text → Image</button>
+                    <button type="button" class="mode-toggle-btn" data-mode="img2img">🖼️ Image → Image</button>
+                </div>
+                <div class="form-group" id="uploadGroup" style="display:none;">
+                    <div class="upload-zone" id="uploadZone">
+                        <input type="file" id="initImageInput" accept="image/*" style="display:none;">
+                        <div class="upload-placeholder" id="uploadPlaceholder">
+                            <span>📁</span>
+                            <p>Click or drag an image here</p>
+                        </div>
+                        <img id="uploadPreview" style="display:none;" alt="Init image preview">
+                        <button type="button" class="upload-clear" id="uploadClear" style="display:none;">✕</button>
+                    </div>
+                </div>
                 <div class="form-group">
                     <label class="form-label" for="prompt">
                         <span>Prompt</span>
@@ -1510,6 +1721,17 @@ body, .app-header, .controls-panel, .panel-section, .preview-stage,
                     <input type="number" id="num_images_per_prompt" min="1" max="8" value="1">
                 </div>
 
+                <div class="form-group" id="strengthGroup" style="display:none;">
+                    <label class="form-label" for="strength">
+                        <span>Strength</span>
+                        <span class="hint">Transformation power</span>
+                    </label>
+                    <div class="slider-row">
+                        <input type="range" id="strengthSlider" min="0.1" max="1.0" step="0.05" value="0.75" class="slider-mini">
+                        <input type="number" id="strength" min="0.1" max="1.0" step="0.05" value="0.75">
+                    </div>
+                </div>
+
                 <div class="form-group" style="margin-bottom: 0;">
                     <label class="form-label" for="seed">
                         <span>Seed</span>
@@ -1590,6 +1812,7 @@ body, .app-header, .controls-panel, .panel-section, .preview-stage,
                         </svg>
                         <input type="text" class="gallery-search" id="gallerySearch" placeholder="Search prompts...">
                     </div>
+                    <button class="fav-filter" id="favFilter" title="Show favorites only">⭐ <span id="favCount">0</span></button>
                     <span class="gallery-stats" id="galleryStats"></span>
                 </div>
                 <div class="gallery-grid" id="galleryGrid">
@@ -1609,6 +1832,22 @@ body, .app-header, .controls-panel, .panel-section, .preview-stage,
             <button class="modal-close" id="infoClose" aria-label="Close">✕</button>
         </div>
         <div class="modal-body" id="infoBody">Loading…</div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="ggufModal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="ggufTitle">
+    <div class="modal" role="document" style="max-width:680px;">
+        <div class="modal-header">
+            <h2 id="ggufTitle">GGUF quick-start models</h2>
+            <button class="modal-close" id="ggufClose" aria-label="Close">✕</button>
+        </div>
+        <div class="modal-body">
+            <p style="color:var(--text-secondary);margin-bottom:14px;">
+                Install a preset to download its quantized transformer and required FLUX base components.
+                The displayed size is the transformer only, not the complete download.
+            </p>
+            <div class="gguf-catalog-list" id="ggufCatalogList">Loading presets…</div>
+        </div>
     </div>
 </div>
 
@@ -1683,6 +1922,7 @@ const LOADING_CHECK_MS    = 5000;
 const HISTORY_KEY         = 'oig_history_v1';
 const SETTINGS_KEY        = 'oig_settings_v1';
 const THEME_KEY           = 'oig_theme_v1';
+const FAVORITES_KEY       = 'oig_favorites_v1';
 const MAX_HISTORY_ITEMS   = 24;
 
 const PROMPT_TEMPLATES = [
@@ -1744,13 +1984,18 @@ const state = {
     serviceInfo: null,
     currentJobId: null,
     pollInterval: null,
+    websocket: null,
     currentJob: null,
     lastUsedSeed: null,
     history: [],
     settings: {},
     currentBatchUrls: null,
     lightboxIndex: 0,
-    contextMenuItem: null
+    contextMenuItem: null,
+    generationMode: 'text2img',
+    initImageId: null,
+    favorites: [],
+    showFavoritesOnly: false
 };
 
 // ============================================================================
@@ -1763,9 +2008,12 @@ function cacheDom() {
         'statusPill', 'statusText', 'logoSub',
         'genForm', 'prompt', 'promptCount', 'negative_prompt',
         'model_name', 'modelInfo',
+        'modeToggle', 'uploadGroup', 'uploadZone', 'initImageInput',
+        'uploadPlaceholder', 'uploadPreview', 'uploadClear',
         'width', 'height', 'dimensionPresets',
         'steps', 'stepsSlider', 'guidance_scale', 'guidanceSlider',
         'num_images_per_prompt', 'seed',
+        'strengthGroup', 'strength', 'strengthSlider',
         'randomSeed', 'useLastSeed',
         'generateBtn', 'btnLabel',
         'previewStage', 'placeholder',
@@ -1774,6 +2022,7 @@ function cacheDom() {
         'batchCarousel', 'batchThumbs',
         'downloadBtn', 'copySeedBtn', 'openImageBtn', 'downloadAllBtn',
         'galleryGrid', 'clearHistoryBtn', 'gallerySearch', 'galleryStats',
+        'favFilter', 'favCount',
         'infoBtn', 'infoModal', 'infoClose', 'infoBody',
         'themeToggle', 'shortcutsBtn', 'shortcutsModal', 'shortcutsClose',
         'templatesRow', 'surpriseBtn',
@@ -1838,8 +2087,14 @@ async function copyText(text) {
 // ============================================================================
 // API
 // ============================================================================
+function authHeaders() {
+    let key = '';
+    try { key = localStorage.getItem('oig_api_key_v1') || ''; } catch {}
+    return key ? { 'X-API-Key': key } : {};
+}
+
 async function apiGet(path) {
-    const res = await fetch(path);
+    const res = await fetch(path, { headers: authHeaders() });
     if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
         throw new Error(err.detail || `HTTP ${res.status}`);
@@ -1850,7 +2105,7 @@ async function apiGet(path) {
 async function apiPost(path, body) {
     const res = await fetch(path, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(body)
     });
     if (!res.ok) {
@@ -1864,15 +2119,41 @@ async function checkHealth() {
     try {
         const data = await apiGet('/health');
         const wasLoading = state.serviceInfo?.is_loading_models;
+        const wasDownloading = state.serviceInfo?.is_downloading_models;
         state.serviceInfo = data;
         const modelCount = (data.loaded_models || []).length;
         const jobs = data.active_jobs || 0;
 
-        if (data.is_loading_models) {
-            setStatus('connecting', 'Downloading models...');
-            els.logoSub.textContent = 'Downloading models... Please wait.';
+        const downloadProgress = data.download_progress || {};
+        const downloadingEntries = Object.entries(downloadProgress).filter(([k, v]) => v && v.status === 'downloading');
+        const headerProgress = document.getElementById('headerProgress');
+        const headerProgressFill = document.getElementById('headerProgressFill');
+
+        if (downloadingEntries.length > 0) {
+            const [dlKey, dlData] = downloadingEntries[0];
+            const pct = dlData.percentage || 0;
+            if (headerProgress && headerProgressFill) {
+                headerProgress.style.display = 'block';
+                headerProgressFill.style.width = `${pct}%`;
+            }
+            setStatus('connecting', `Downloading ${dlKey}: ${pct}%`);
+            els.logoSub.textContent = `Downloading ${dlKey}... ${pct}%`;
+            els.generateBtn.disabled = true;
+        } else if (data.is_downloading_models || data.is_loading_models) {
+            const action = data.is_downloading_models ? 'Downloading' : 'Loading';
+            const modelKey = data.loading_model_key || '';
+            setStatus('connecting', `${action} models${modelKey ? ': ' + modelKey : ''}...`);
+            els.logoSub.textContent = `${action} models... Please wait.`;
+            if (headerProgress && headerProgressFill) {
+                headerProgress.style.display = 'block';
+                headerProgressFill.style.width = '30%';
+            }
             els.generateBtn.disabled = true;
         } else {
+            if (headerProgress && headerProgressFill) {
+                headerProgress.style.display = 'none';
+                headerProgressFill.style.width = '0%';
+            }
             const statusMsg = `${data.device} · ${modelCount} loaded · ${jobs} job${jobs !== 1 ? 's' : ''}`;
             setStatus('online', statusMsg);
             els.logoSub.textContent = `${data.dtype} on ${data.device}`;
@@ -1881,8 +2162,8 @@ async function checkHealth() {
             }
         }
 
-        // If loading state changed, refresh models list to update disabled options
-        if (wasLoading !== data.is_loading_models || (state.models.length === 0 && modelCount > 0)) {
+        // If loading/downloading state changed, refresh models list to update status
+        if (wasLoading !== data.is_loading_models || wasDownloading !== data.is_downloading_models || (state.models.length === 0 && modelCount > 0)) {
             await loadModels();
         }
         return true;
@@ -1909,6 +2190,41 @@ async function loadModels() {
     }
 }
 
+async function downloadModel(modelKey) {
+    if (!modelKey) return;
+    showToast(`Downloading model '${modelKey}'... This may take a while.`, 'info', 5000);
+    try {
+        const res = await fetch('/preload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...authHeaders() },
+            body: JSON.stringify({ model_keys: [modelKey] })
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({ detail: 'Download failed' }));
+            throw new Error(err.detail || 'Download failed');
+        }
+        showToast(`Download started for '${modelKey}'. Monitor progress in the header.`, 'info', 4000);
+    } catch (e) {
+        showToast('Download failed: ' + e.message, 'error');
+    }
+}
+
+async function loadModel(modelKey) {
+    if (!modelKey) return;
+    showToast(`Loading model '${modelKey}' into memory...`, 'info', 3000);
+    try {
+        const res = await fetch(`/models/${modelKey}/load`, { method: 'POST', headers: authHeaders() });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({ detail: 'Load failed' }));
+            throw new Error(err.detail || 'Load failed');
+        }
+        showToast(`Model '${modelKey}' loaded successfully`, 'success');
+        await loadModels();
+    } catch (e) {
+        showToast('Load failed: ' + e.message, 'error');
+    }
+}
+
 // ============================================================================
 // UI updates
 // ============================================================================
@@ -1931,9 +2247,18 @@ function populateModelSelect() {
     state.models.forEach(m => {
         const opt = document.createElement('option');
         opt.value = m.key;
-        opt.textContent = `${m.key} (${m.type})${m.loaded ? '' : ' (Load on demand)'}`;
+        let statusLabel = '';
+        if (m.loaded) {
+            statusLabel = ' · ✅ Loaded';
+        } else if (m.downloaded) {
+            statusLabel = ' · 💾 Ready';
+        } else {
+            statusLabel = ' · ⬇️ Not downloaded';
+        }
+        opt.textContent = `${m.key} (${m.type})${statusLabel}`;
         opt.dataset.type = m.type;
         opt.dataset.name = m.name;
+        opt.dataset.img2img = m.supports_img2img ? 'true' : 'false';
         opt.disabled = false;
         sel.appendChild(opt);
     });
@@ -1958,6 +2283,23 @@ function updateModelInfo() {
         return;
     }
     els.modelInfo.classList.add('has-data');
+    const modelData = state.models.find(m => m.key === opt.value);
+    const supportsI2I = modelData?.supports_img2img;
+    const isLoaded = modelData?.loaded;
+    const isDownloaded = modelData?.downloaded;
+
+    let statusBadge = '';
+    let actionButton = '';
+    if (isLoaded) {
+        statusBadge = '<span style="color:var(--success)">✅ Loaded in memory</span>';
+    } else if (isDownloaded) {
+        statusBadge = '<span style="color:var(--accent-secondary)">💾 Downloaded · Load on demand</span>';
+        actionButton = `<button type="button" class="model-action-btn" onclick="loadModel('${opt.value}')">Load into memory</button>`;
+    } else {
+        statusBadge = '<span style="color:var(--warning)">⬇️ Not downloaded</span>';
+        actionButton = `<button type="button" class="model-action-btn" onclick="downloadModel('${opt.value}')">⬇ Download model</button>`;
+    }
+
     els.modelInfo.innerHTML = `
         <div class="model-info-row">
             <span class="model-info-label">Type</span>
@@ -1967,6 +2309,15 @@ function updateModelInfo() {
             <span class="model-info-label">Repository</span>
             <span class="model-info-name" title="${opt.dataset.name}">${opt.dataset.name}</span>
         </div>
+        <div class="model-info-row">
+            <span class="model-info-label">Img2Img</span>
+            <span>${supportsI2I ? '✅ Supported' : '❌ Not supported'}</span>
+        </div>
+        <div class="model-info-row">
+            <span class="model-info-label">Status</span>
+            <span>${statusBadge}</span>
+        </div>
+        ${actionButton}
     `;
 }
 
@@ -2001,6 +2352,16 @@ function gatherFormData() {
     const seed = parseInt(els.seed.value, 10);
     if (!Number.isNaN(seed) && seed >= 0) data.seed = seed;
 
+    if (state.generationMode === 'img2img') {
+        if (!state.initImageId) {
+            showToast('Please upload an init image', 'error');
+            return null;
+        }
+        data.init_image_id = state.initImageId;
+        const strength = parseFloat(els.strength.value);
+        if (strength && strength > 0 && strength <= 1.0) data.strength = strength;
+    }
+
     return data;
 }
 
@@ -2014,13 +2375,22 @@ function saveCurrentSettings() {
         steps: els.steps.value,
         guidance_scale: els.guidance_scale.value,
         num_images_per_prompt: els.num_images_per_prompt.value,
-        seed: els.seed.value
+        seed: els.seed.value,
+        generationMode: state.generationMode,
+        strength: els.strength ? els.strength.value : '0.75'
     };
     saveStorage(SETTINGS_KEY, state.settings);
 }
 
 function applySettingsToForm() {
     const s = state.settings || {};
+    if (s.generationMode) {
+        switchMode(s.generationMode);
+    }
+    if (s.strength && els.strength) {
+        els.strength.value = s.strength;
+        els.strengthSlider.value = Math.min(1.0, parseFloat(s.strength) || 0.75);
+    }
     if (s.prompt !== undefined)             els.prompt.value              = s.prompt || '';
     if (s.negative_prompt !== undefined)    els.negative_prompt.value     = s.negative_prompt || '';
     if (s.width)                            els.width.value               = s.width;
@@ -2103,7 +2473,7 @@ function showResult(job) {
         return;
     }
 
-    const seedUsed = job.request_details?.seed;
+    const seedUsed = job.seed_used ?? job.request_details?.seed;
     state.lastUsedSeed = (seedUsed !== undefined && seedUsed !== null) ? seedUsed : null;
     els.useLastSeed.disabled = (state.lastUsedSeed === null);
 
@@ -2128,6 +2498,7 @@ function showResult(job) {
     if (rd.width && rd.height) metaParts.push(`<span>Size: <span>${rd.width}×${rd.height}</span></span>`);
     if (rd.num_inference_steps) metaParts.push(`<span>Steps: <span>${rd.num_inference_steps}</span></span>`);
     if (rd.guidance_scale) metaParts.push(`<span>CFG: <span>${rd.guidance_scale}</span></span>`);
+    if (rd.strength) metaParts.push(`<span>Strength: <span>${rd.strength}</span></span>`);
     if (state.lastUsedSeed !== null) metaParts.push(`<span>Seed: <span>${state.lastUsedSeed}</span></span>`);
     else metaParts.push(`<span>Seed: <span>random</span></span>`);
     els.imageMeta.innerHTML = `<div class="image-meta-row">${metaParts.join('')}</div>`;
@@ -2158,7 +2529,10 @@ function showResult(job) {
 }
 
 function renderGallery() {
-    const filtered = getFilteredHistory();
+    let filtered = getFilteredHistory();
+    if (state.showFavoritesOnly) {
+        filtered = filtered.filter(item => isFavorite(item.jobId));
+    }
     updateGalleryStats();
 
     if (state.history.length === 0) {
@@ -2166,7 +2540,8 @@ function renderGallery() {
         return;
     }
     if (filtered.length === 0) {
-        els.galleryGrid.innerHTML = '<div class="gallery-empty">No results match your search</div>';
+        const msg = state.showFavoritesOnly ? 'No favorites yet' : 'No results match your search';
+        els.galleryGrid.innerHTML = `<div class="gallery-empty">${msg}</div>`;
         return;
     }
 
@@ -2176,14 +2551,23 @@ function renderGallery() {
         div.className = 'gallery-item';
         div.title = item.prompt;
         div.dataset.jobId = item.jobId;
+        const favClass = isFavorite(item.jobId) ? ' favorited' : '';
         div.innerHTML = `
+            <button class="gallery-fav-btn${favClass}" data-fav-id="${item.jobId}" title="Toggle favorite">⭐</button>
             <img src="${item.thumbUrl}" alt="${truncate(item.prompt, 30)}" loading="lazy">
             <div class="gallery-item-overlay">
                 <div class="gallery-item-prompt">${truncate(item.prompt, 60)}</div>
                 <div class="gallery-item-meta">${item.imageCount} img · ${timeAgo(item.timestamp)}</div>
             </div>
         `;
-        div.onclick = () => loadHistoryItem(item);
+        div.onclick = (e) => {
+            if (e.target.closest('.gallery-fav-btn')) {
+                e.stopPropagation();
+                toggleFavorite(item.jobId);
+            } else {
+                loadHistoryItem(item);
+            }
+        };
         div.oncontextmenu = (e) => {
             e.preventDefault();
             showContextMenu(e.clientX, e.clientY, item);
@@ -2222,13 +2606,101 @@ function addToHistory(job) {
         steps: rd.num_inference_steps || null,
         guidance_scale: rd.guidance_scale || null,
         num_images_per_prompt: rd.num_images_per_prompt || null,
-        seed: rd.seed ?? null
+        seed: rd.seed ?? null,
+        seed_used: job.seed_used ?? null,
+        job_type: job.job_type || 'text2img',
+        strength: rd.strength || null
     };
     state.history = state.history.filter(h => h.jobId !== entry.jobId);
     state.history.unshift(entry);
     state.history = state.history.slice(0, MAX_HISTORY_ITEMS);
     saveStorage(HISTORY_KEY, state.history);
     renderGallery();
+}
+
+// ============================================================================
+// Mode Switching & Upload
+// ============================================================================
+function switchMode(mode) {
+    state.generationMode = mode;
+    els.modeToggle.querySelectorAll('.mode-toggle-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.mode === mode);
+    });
+    const isImg2img = mode === 'img2img';
+    els.uploadGroup.style.display = isImg2img ? 'block' : 'none';
+    els.strengthGroup.style.display = isImg2img ? 'block' : 'none';
+    saveCurrentSettings();
+}
+
+async function handleImageUpload(file) {
+    if (!file || !file.type.startsWith('image/')) {
+        showToast('Please select an image file', 'error');
+        return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+        showToast('Image too large. Maximum 10 MB.', 'error');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        setStage('processing', 'Uploading image…');
+        const res = await fetch('/upload', { method: 'POST', headers: authHeaders(), body: formData });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({ detail: 'Upload failed' }));
+            throw new Error(err.detail || 'Upload failed');
+        }
+        const { image_id, url } = await res.json();
+        state.initImageId = image_id;
+
+        els.uploadPreview.src = url;
+        els.uploadPreview.style.display = 'block';
+        els.uploadPlaceholder.style.display = 'none';
+        els.uploadClear.style.display = 'flex';
+        els.uploadZone.classList.add('has-image');
+
+        setStage('placeholder');
+        showToast('Image uploaded', 'success', 2000);
+    } catch (e) {
+        setStage('placeholder');
+        showToast('Upload failed: ' + e.message, 'error');
+    }
+}
+
+function clearUpload() {
+    state.initImageId = null;
+    els.uploadPreview.src = '';
+    els.uploadPreview.style.display = 'none';
+    els.uploadPlaceholder.style.display = 'block';
+    els.uploadClear.style.display = 'none';
+    els.uploadZone.classList.remove('has-image');
+    els.initImageInput.value = '';
+}
+
+// ============================================================================
+// Gallery Favorites
+// ============================================================================
+function isFavorite(jobId) {
+    return state.favorites.includes(jobId);
+}
+
+function toggleFavorite(jobId) {
+    if (isFavorite(jobId)) {
+        state.favorites = state.favorites.filter(id => id !== jobId);
+    } else {
+        state.favorites.unshift(jobId);
+    }
+    saveStorage(FAVORITES_KEY, state.favorites);
+    updateFavCount();
+    renderGallery();
+}
+
+function updateFavCount() {
+    if (els.favCount) {
+        els.favCount.textContent = state.favorites.length;
+    }
 }
 
 // ============================================================================
@@ -2240,7 +2712,13 @@ async function startGeneration() {
         return;
     }
 
+    const selectedModel = state.models.find(m => m.key === els.model_name.value);
+    if (selectedModel && !selectedModel.downloaded && !selectedModel.loaded) {
+        showToast(`'${selectedModel.key}' will download automatically before generation.`, 'info', 5000);
+    }
+
     const data = gatherFormData();
+    if (!data) return;
     if (!data.prompt) {
         showToast('Please enter a prompt', 'error');
         els.prompt.focus();
@@ -2250,20 +2728,89 @@ async function startGeneration() {
         showToast('Maximum 8 images per prompt', 'error');
         return;
     }
+    if (state.generationMode === 'img2img') {
+        const modelData = state.models.find(m => m.key === data.model_name);
+        if (modelData && !modelData.supports_img2img) {
+            showToast('Selected model does not support img2img', 'error');
+            return;
+        }
+    }
 
     saveCurrentSettings();
     setGenerating(true);
     setStage('processing', 'Submitting job…');
 
     try {
-        const { job_id } = await apiPost('/submit', data);
+        const endpoint = state.generationMode === 'img2img' ? '/submit_img2img' : '/submit';
+        const { job_id } = await apiPost(endpoint, data);
         state.currentJobId = job_id;
         setStage('processing', 'Queued for generation…');
-        startPolling(job_id);
+        connectWebSocket(job_id);
     } catch (e) {
-        showToast('Submission failed: ' + e.message, 'error');
+        let msg = e.message || 'Submission failed';
+        if (msg.includes('not downloaded')) {
+            msg = `Model not downloaded. Use the Download button in the Model section, or run: openimagegen download --models ${els.model_name.value}`;
+        }
+        showToast(msg, 'error', 8000);
         setStage('placeholder');
         setGenerating(false);
+    }
+}
+
+function connectWebSocket(jobId) {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws/${jobId}`;
+
+    try {
+        const ws = new WebSocket(wsUrl);
+        state.websocket = ws;
+
+        ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.status === 'completed') {
+                    state.currentJobId = null;
+                    setGenerating(false);
+                    showResult(data);
+                    addToHistory(data);
+                    showToast('Generation complete', 'success');
+                    ws.close();
+                } else if (data.status === 'failed') {
+                    state.currentJobId = null;
+                    setGenerating(false);
+                    setStage('failed', data.message || 'Generation failed');
+                    showToast('Generation failed', 'error');
+                    ws.close();
+                } else if (data.status === 'cancelled') {
+                    state.currentJobId = null;
+                    setGenerating(false);
+                    setStage('placeholder');
+                    showToast('Job cancelled', 'info');
+                    ws.close();
+                } else if (data.status === 'processing') {
+                    updateProgress(data.progress || 0, data.message || 'Generating…');
+                }
+            } catch (e) {
+                console.error('WebSocket parse error:', e);
+            }
+        };
+
+        ws.onerror = () => {
+            console.warn('WebSocket error, falling back to polling');
+            if (state.currentJobId === jobId && !state.pollInterval) {
+                startPolling(jobId);
+            }
+        };
+
+        ws.onclose = () => {
+            state.websocket = null;
+            if (state.currentJobId === jobId && !state.pollInterval) {
+                startPolling(jobId);
+            }
+        };
+    } catch (e) {
+        console.warn('WebSocket not available, using polling');
+        startPolling(jobId);
     }
 }
 
@@ -2289,6 +2836,13 @@ function startPolling(jobId) {
                 setGenerating(false);
                 setStage('failed', job.message || 'Generation failed');
                 showToast('Generation failed', 'error');
+            } else if (job.status === 'cancelled') {
+                clearInterval(state.pollInterval);
+                state.pollInterval = null;
+                state.currentJobId = null;
+                setGenerating(false);
+                setStage('placeholder');
+                showToast('Job cancelled', 'info');
             } else {
                 updateProgress(job.progress || 0, job.message || 'Generating…');
             }
@@ -2319,6 +2873,9 @@ function showInfoModal() {
             <div class="info-row"><span>Data type</span><span>${s.dtype}</span></div>
             <div class="info-row"><span>Force GPU</span><span>${s.force_gpu}</span></div>
             <div class="info-row"><span>Use GPU</span><span>${s.use_gpu}</span></div>
+            <div class="info-row"><span>GPU</span><span>${s.gpu_name || 'Not visible'}</span></div>
+            <div class="info-row"><span>PyTorch</span><span>${s.torch_version || 'unknown'}</span></div>
+            <div class="info-row"><span>CUDA build</span><span>${s.torch_cuda_build || 'CPU-only'}</span></div>
             <div class="info-row"><span>Default model</span><span>${s.default_model || '(none)'}</span></div>
             <div class="info-row"><span>Active jobs</span><span>${s.active_jobs}</span></div>
             <div class="info-row"><span>Output</span><span class="path" title="${s.output_folder}">${s.output_folder}</span></div>
@@ -2529,6 +3086,68 @@ function bindEvents() {
         if (!e.target.closest('.gallery-item')) hideContextMenu();
     });
 
+    // Mode toggle
+    els.modeToggle.querySelectorAll('.mode-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', () => switchMode(btn.dataset.mode));
+    });
+
+    // Upload zone
+    els.uploadZone.addEventListener('click', (e) => {
+        if (e.target !== els.uploadClear && e.target !== els.uploadPreview) {
+            els.initImageInput.click();
+        }
+    });
+    els.initImageInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) handleImageUpload(file);
+    });
+    els.uploadClear.addEventListener('click', (e) => {
+        e.stopPropagation();
+        clearUpload();
+    });
+
+    // Drag and drop on upload zone
+    ['dragenter', 'dragover'].forEach(evt => {
+        els.uploadZone.addEventListener(evt, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            els.uploadZone.classList.add('dragover');
+        });
+    });
+    ['dragleave', 'drop'].forEach(evt => {
+        els.uploadZone.addEventListener(evt, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            els.uploadZone.classList.remove('dragover');
+        });
+    });
+    els.uploadZone.addEventListener('drop', (e) => {
+        const file = e.dataTransfer.files[0];
+        if (file) handleImageUpload(file);
+    });
+
+    // Strength slider sync
+    if (els.strengthSlider) {
+        els.strengthSlider.addEventListener('input', () => {
+            els.strength.value = els.strengthSlider.value;
+            saveCurrentSettings();
+        });
+        els.strength.addEventListener('input', () => {
+            const v = parseFloat(els.strength.value);
+            if (!Number.isNaN(v) && v >= 0.1 && v <= 1.0) {
+                els.strengthSlider.value = v;
+            }
+            saveCurrentSettings();
+        });
+    }
+
+    // Favorites filter
+    els.favFilter.addEventListener('click', () => {
+        state.showFavoritesOnly = !state.showFavoritesOnly;
+        els.favFilter.classList.toggle('active', state.showFavoritesOnly);
+        renderGallery();
+    });
+
     // Keyboard shortcuts
     document.addEventListener('keydown', e => {
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -2695,12 +3314,16 @@ function getFilteredHistory() {
 
 function updateGalleryStats() {
     const total = state.history.length;
-    const filtered = getFilteredHistory().length;
+    let filtered = getFilteredHistory();
+    if (state.showFavoritesOnly) {
+        filtered = filtered.filter(item => isFavorite(item.jobId));
+    }
+    const filteredLen = filtered.length;
     if (!els.galleryStats) return;
     if (total === 0) {
         els.galleryStats.textContent = '';
-    } else if (filtered < total) {
-        els.galleryStats.textContent = `${filtered} / ${total}`;
+    } else if (filteredLen < total) {
+        els.galleryStats.textContent = `${filteredLen} / ${total}`;
     } else {
         els.galleryStats.textContent = `${total} generation${total !== 1 ? 's' : ''}`;
     }
@@ -2712,6 +3335,15 @@ function updateGalleryStats() {
 function reuseSettings(item) {
     els.prompt.value = item.prompt || '';
     if (item.negative_prompt) els.negative_prompt.value = item.negative_prompt;
+    if (item.job_type === 'img2img') {
+        switchMode('img2img');
+        if (item.strength) {
+            els.strength.value = item.strength;
+            els.strengthSlider.value = Math.min(1.0, parseFloat(item.strength) || 0.75);
+        }
+    } else {
+        switchMode('text2img');
+    }
     if (item.model_name && state.models.some(m => m.key === item.model_name)) {
         els.model_name.value = item.model_name;
         updateModelInfo();
@@ -2789,6 +3421,8 @@ async function init() {
 
     state.history = loadStorage(HISTORY_KEY, []);
     state.settings = loadStorage(SETTINGS_KEY, {});
+    state.favorites = loadStorage(FAVORITES_KEY, []);
+    updateFavCount();
     renderGallery();
     updateGalleryStats();
     applySettingsToForm();
@@ -2823,5 +3457,7 @@ if (document.readyState === 'loading') {
     init();
 }
 </script>
+<script src="/static/gguf.js"></script>
+<script src="/static/downloads.js"></script>
 </body>
 </html>

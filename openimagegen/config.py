@@ -38,8 +38,11 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "force_gpu": False,
         "use_gpu": True,
         "dtype": "float16",
+        "auto_download_models": True,
         "output_folder": "./outputs",
         "model_cache_dir": "./models",
+        "asset_dir": "./model_assets",
+        "max_asset_upload_gb": 32,
         "port": 8089,
         "host": "0.0.0.0",
         "file_retention_time": 3600,
@@ -49,6 +52,25 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "guidance_scale": 7.5,
         "num_inference_steps": 50,
         "num_images_per_prompt": 1,
+    },
+    "auth": {
+        "enabled": False,
+        "allow_anonymous": True,
+        # Example:
+        # "users": {
+        #     "alice": {"api_key": "change-me", "is_admin": True, "quota_per_hour": 200, "max_concurrent_jobs": 2},
+        #     "bob":   {"api_key": "bob-secret", "quota_per_hour": 50, "max_concurrent_jobs": 1},
+        # },
+        "users": {},
+    },
+    "execution": {
+        "max_workers": 2,
+        "max_concurrent_jobs_per_user": 1,
+    },
+    "plugins": {
+        # Python plugins are trusted server code. Never point this at user uploads.
+        "enabled": False,
+        "paths": ["./nodes"],
     },
 }
 
@@ -120,6 +142,28 @@ def _merge_configs(default: Dict[str, Any], loaded: Dict[str, Any]) -> Dict[str,
         else:
             merged[key] = value.copy() if isinstance(value, dict) else value
     return merged
+
+
+def resolve_config_path(explicit_path: Optional[str] = None) -> Path:
+    """Return the active config path, or the default write target if none exists."""
+    return _resolve_config_path(explicit_path) or (Path.cwd() / "config.toml")
+
+
+def save_config(config: Dict[str, Any], explicit_path: Optional[str] = None) -> Path:
+    """Persist a configuration and reject unsafe adapter pipeline overrides."""
+    for key, model in config.get("models", {}).items():
+        if model.get("custom_pipeline"):
+            raise ValueError(
+                f"Model '{key}' cannot use custom_pipeline through runtime configuration. "
+                "Custom pipelines execute repository code and must be installed explicitly."
+            )
+    path = resolve_config_path(explicit_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    with temporary.open("w", encoding="utf-8") as stream:
+        toml.dump(config, stream)
+    temporary.replace(path)
+    return path
 
 
 def load_config(explicit_path: Optional[str] = None, suppress_logs: bool = False) -> Dict[str, Any]:

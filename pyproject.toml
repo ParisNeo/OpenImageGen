@@ -1,11 +1,13 @@
+
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "openimagegen"
-version = "0.2.0"
+version = "0.3.0"
 description = "Open source image generation API using diffusion models"
+readme = "README.md"
 authors = [
   { name = "ParisNeo", email = "parisneo_ai@gmail.com" }
 ]
@@ -14,35 +16,47 @@ dependencies = [
     "uvicorn[standard]>=0.20.0",
     "pydantic>=2.0.0",
     "torch>=2.0.0",
-    "diffusers>=0.26.0",
-    "transformers>=4.30.0",
+    "diffusers>=0.35.0",
+    "transformers>=4.44.0",
     "accelerate>=0.25.0",
+    "gguf>=0.10.0",
+    "optimum-quanto>=0.2.4",
+    "sentencepiece>=0.2.0",
     "Pillow>=9.0.0",
     "toml>=0.10.0",
     "peft>=0.17.0",
-    "pipmaster>=0.5.4"
+    "pipmaster>=0.5.4",
+    "python-multipart>=0.0.6",
+    "websockets>=11.0",
+    "tqdm>=4.65.0",
+    "huggingface_hub>=0.20.0"
 ]
 requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Multimedia :: Graphics :: Graphics Conversion",
+    "Framework :: FastAPI",
+]
 
 [project.urls]
 "Homepage" = "https://github.com/ParisNeo/OpenImageGen"
 
-[project.classifiers]
-"Programming Language :: Python :: 3" = true
-"Programming Language :: Python :: 3.11" = true
-"Programming Language :: Python :: 3.12" = true
-"License :: OSI Approved :: Apache Software License" = true
-"Operating System :: OS Independent" = true
-"Topic :: Scientific/Engineering :: Artificial Intelligence" = true
-"Topic :: Multimedia :: Graphics :: Graphics Conversion" = true
-"Framework :: FastAPI" = true
-
-[tool.setuptools]
-packages = ["openimagegen"]
-include_package_data = true
-
-[tool.setuptools.entry-points.console_scripts]
+# PEP 621: entry points MUST live here, not under [tool.setuptools.*]
+[project.scripts]
 openimagegen = "openimagegen.cli:main"
 
 [project.optional-dependencies]
 dev = ["pytest", "black"]
+
+[tool.setuptools]
+packages = ["openimagegen", "openimagegen.models", "openimagegen.nodes"]
+
+# Explicit package data (replaces legacy include_package_data=true).
+# Ensure the static HTML interfaces ship with the wheel.
+[tool.setuptools.package-data]
+openimagegen = ["static/*.html", "static/*.js"]
