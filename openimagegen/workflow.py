@@ -18,7 +18,7 @@ logger = logging.getLogger("OpenImageGen.workflow")
 
 _ALLOWED_PARAM_KEYS = {
     "prompt", "negative_prompt", "model_name", "width", "height",
-    "num_inference_steps", "guidance_scale", "seed", "num_images_per_prompt",
+    "num_inference_steps", "guidance_scale", "sampler", "seed", "num_images_per_prompt",
     "init_image_id", "strength", "loras",
 }
 
@@ -144,9 +144,11 @@ def execute_workflow(
     validate_workflow(workflow)
     index, specs, references = _index_and_validate(workflow)
     registry = get_node_registry()
-    terminal = next((node for node in workflow.nodes if node.type == "output"), None)
-    if terminal is None:
-        terminal = next(node for node in workflow.nodes if node.type in {"text_output", "image_preview"})
+    terminals = [
+        node for node in workflow.nodes
+        if node.type in {"output", "text_output", "image_preview"}
+    ]
+    terminal = next((node for node in terminals if node.type == "output"), terminals[0])
     ordered: List[str] = []
     visited: Set[str] = set()
     def visit(node_id: str) -> None:
@@ -156,7 +158,10 @@ def execute_workflow(
         for reference in index[node_id].inputs.values():
             visit(reference.split(".", 1)[0])
         ordered.append(node_id)
-    visit(terminal.id)
+    # Execute every terminal branch. A graph may generate an image while also
+    # displaying the expanded prompt or previewing an independent input image.
+    for terminal_node in terminals:
+        visit(terminal_node.id)
 
     values: Dict[str, Dict[str, Any]] = {}
     context = NodeExecutionContext(
@@ -187,7 +192,32 @@ def execute_workflow(
                 node.params.pop(field.key, None)
 
     request = values[terminal.id]["result"]
-    if terminal.type != "output":
+    node_results = {
+        node.id: values[node.id].get("result", {})
+        for node in terminals
+    }
+    postprocess: List[Dict[str, Any]] = []
+    if terminal.type == "image_preview":
+        image_reference = request.get("image_ref", {}) if isinstance(request, dict) else {}
+        postprocess = list(image_reference.get("operations", []))
+        # A generator's image port is deferred until diffusion. Compile its
+        # params so Sampler/Img2Img can feed Preview Image without Output.
+        source_reference = terminal.inputs["image"]
+        source_node = index[source_reference.split(".", 1)[0]]
+        while source_node.type not in {"sampler", "img2img"}:
+            if source_node.type == "output":
+                source_reference = source_node.inputs["params"]
+            elif "image" in source_node.inputs:
+                source_reference = source_node.inputs["image"]
+            else:
+                break
+            source_node = index[source_reference.split(".", 1)[0]]
+        if source_node.type in {"sampler", "img2img"}:
+            request = values[source_node.id]["params"]
+            terminal = source_node
+    if terminal.type not in {"output", "sampler", "img2img"}:
+        if isinstance(request, dict):
+            request = {**request, "_node_results": node_results}
         return "result", request
     if not isinstance(request, dict):
         raise WorkflowValidationError("Output must resolve to a generation request.")
@@ -199,6 +229,9 @@ def execute_workflow(
     job_type = "img2img" if compiled.get("init_image_id") else "text2img"
     if job_type == "img2img":
         compiled.setdefault("strength", .75)
+    if postprocess:
+        compiled["_postprocess"] = postprocess
+    compiled["_node_results"] = node_results
     return job_type, compiled
 
 def compile_workflow(workflow: WorkflowDefinition) -> Tuple[str, Dict[str, Any]]:

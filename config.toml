@@ -40,6 +40,26 @@ type = "stable_diffusion"
 name = "stabilityai/stable-diffusion-xl-base-1.0"
 type = "stable_diffusion_xl"
 
+[models.dreamshaper_8]
+name = "Lykon/dreamshaper-8"
+type = "stable_diffusion"
+
+[models.realistic_vision_v6]
+name = "SG161222/Realistic_Vision_V6.0_B1_noVAE"
+type = "stable_diffusion"
+
+[models.sd_turbo]
+name = "stabilityai/sd-turbo"
+type = "stable_diffusion"
+
+[models.sdxl_turbo]
+name = "stabilityai/sdxl-turbo"
+type = "stable_diffusion_xl"
+
+[models.qwen_image]
+name = "Qwen/Qwen-Image"
+type = "qwen_image"
+
 [models.flux_schnell]
 name = "black-forest-labs/FLUX.1-schnell"
 type = "flux"

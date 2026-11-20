@@ -15,6 +15,7 @@ class LoRARequest(BaseModel):
     """A LoRA weight file or Hugging Face repository and its generation strength."""
 
     source: str = Field(..., min_length=1, max_length=512)
+    weight_name: Optional[str] = Field(None, max_length=512)
     weight: float = Field(1.0, ge=0.0, le=4.0)
     adapter_name: Optional[str] = Field(None, max_length=64)
 
@@ -30,6 +31,7 @@ class ImageGenerationRequest(BaseModel):
     width: Optional[int] = Field(None, gt=0, le=4096)
     num_inference_steps: Optional[int] = Field(None, alias="steps", gt=0, le=500)
     guidance_scale: Optional[float] = Field(None, ge=0, le=50)
+    sampler: Optional[Literal["dpmpp_2m_karras", "euler_a", "euler", "ddim"]] = None
     seed: Optional[int] = Field(None, ge=0)
     num_images_per_prompt: Optional[int] = Field(None, gt=0, le=8)
     loras: List[LoRARequest] = Field(default_factory=list, max_length=8)
@@ -61,6 +63,8 @@ class JobStatus(BaseModel):
     seed_used: Optional[int] = None
     owner: Optional[str] = None
     request_details: Optional[Any] = None
+    node_results: Dict[str, Any] = Field(default_factory=dict)
+    active_node_ids: List[str] = Field(default_factory=list)
 
 class PreloadRequest(BaseModel):
     """Request body for POST /preload."""

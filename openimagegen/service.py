@@ -12,7 +12,7 @@ import logging
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import nullcontext
+from contextlib import contextmanager, nullcontext
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
@@ -23,6 +23,7 @@ from PIL.PngImagePlugin import PngInfo
 from .config import load_config
 from .download_jobs import DownloadJobManager
 from .downloads import download_model
+from .image_processing import apply_image_operations
 from .jobs import InMemoryJobStore, JobStore
 from .models import get_registry
 from .schemas import ImageGenerationRequest, ImageToImageRequest, JobStatus
@@ -71,6 +72,11 @@ class ImageGenService:
 
         self.uploads_folder = self.output_folder / "uploads"
         self.uploads_folder.mkdir(exist_ok=True, parents=True)
+        from .assets import AssetManager
+        self.assets = AssetManager(
+            Path(self.settings.get("asset_dir", "./model_assets")),
+            max_bytes=int(float(self.settings.get("max_asset_upload_gb", 32)) * 1024**3),
+        )
 
         self.pipelines: Dict[str, Any] = {}
         self.adapters: Dict[str, Any] = {}
@@ -176,6 +182,7 @@ class ImageGenService:
             try:
                 logger.info(f"Lazy-loading '{model_key}' ({model_name}) via {adapter_cls.__name__}...")
                 overrides = {k: v for k, v in model_info.items() if k not in ("name", "type")}
+                overrides["repository"] = model_name
                 adapter = adapter_cls(**overrides)
                 if not self._is_model_downloaded(model_key):
                     logger.info(f"Model '{model_key}' is not cached; downloading before loading...")
@@ -303,6 +310,11 @@ class ImageGenService:
             if current is not None:
                 current.progress = max(0, min(95, progress))
                 current.message = message
+                # execute_workflow reports "Executing <title> (<node id>)…".
+                # Keep node activity structured for any frontend, not only the editor.
+                if message.startswith("Executing ") and message.endswith("…"):
+                    active_id = message.rsplit("(", 1)[-1][:-2]
+                    current.active_node_ids = [active_id] if active_id else []
                 self.jobs.update(current)
                 self._notify_job_update(job_id)
 
@@ -312,19 +324,25 @@ class ImageGenService:
 
         try:
             job_type, values = execute_workflow(workflow, report=report, is_cancelled=cancelled)
+            postprocess = values.pop("_postprocess", []) if isinstance(values, dict) else []
+            node_results = values.pop("_node_results", {}) if isinstance(values, dict) else {}
             if cancelled():
                 return
             if job_type == "result":
                 current = self.jobs.get(job_id)
                 if current is not None:
                     current.status = "completed"
+                    current.active_node_ids = []
                     current.progress = 100
                     current.message = "Workflow completed."
                     current.request_details = {"result": values}
+                    current.node_results = node_results
                     if values.get("image_id"):
                         current.image_urls = [f"/uploads/{values['image_id']}"]
                     elif values.get("image_url"):
                         current.image_urls = [values["image_url"]]
+                    elif values.get("image_ref"):
+                        current.image_urls = [self._save_processed_reference(job_id, values["image_ref"])]
                     self.jobs.update(current)
                     self._notify_job_update(job_id)
                 return
@@ -333,17 +351,23 @@ class ImageGenService:
             if current is not None:
                 current.job_type = "img2img" if job_type == "img2img" else "text2img"
                 current.request_details = request
+                current.node_results = node_results
+                current.active_node_ids = [
+                    node.id for node in workflow.nodes
+                    if node.type == ("img2img" if job_type == "img2img" else "sampler")
+                ]
                 self.jobs.update(current)
             if job_type == "img2img":
                 assert isinstance(request, ImageToImageRequest)
-                self.generate_img2img(job_id, request)
+                self.generate_img2img(job_id, request, postprocess=postprocess)
             else:
-                self.generate_images(job_id, request)
+                self.generate_images(job_id, request, postprocess=postprocess)
         except Exception as error:
             logger.error(f"Workflow job {job_id} failed: {error}", exc_info=True)
             current = self.jobs.get(job_id)
             if current is not None and current.status != "cancelled":
                 current.status = "failed"
+                current.active_node_ids = []
                 current.progress = 0
                 current.message = str(error)
                 self.jobs.update(current)
@@ -567,6 +591,60 @@ class ImageGenService:
             return False
 
 
+    @contextmanager
+    def _active_loras(self, pipeline: Any, adapter: Any, request: Any):
+        """Load request-scoped adapters and always restore the cached pipeline."""
+        loras = list(getattr(request, "loras", []) or [])
+        if not loras:
+            yield
+            return
+        if not adapter.supports_lora():
+            raise ValueError(f"Model adapter '{adapter.type_name}' does not support LoRAs.")
+        if not hasattr(pipeline, "load_lora_weights") or not hasattr(pipeline, "set_adapters"):
+            raise ValueError("The loaded pipeline does not expose Diffusers LoRA hooks.")
+
+        names: List[str] = []
+        weights: List[float] = []
+        try:
+            for index, lora in enumerate(loras):
+                name = f"oig_lora_{index}"
+                source = self.assets.resolve_source(
+                    lora.source,
+                    self.model_cache_dir,
+                    weight_name=lora.weight_name,
+                )
+                pipeline.load_lora_weights(source, adapter_name=name)
+                names.append(name)
+                weights.append(float(lora.weight))
+            pipeline.set_adapters(names, adapter_weights=weights)
+            yield
+        finally:
+            if names and hasattr(pipeline, "unload_lora_weights"):
+                try:
+                    pipeline.unload_lora_weights()
+                except Exception as error:
+                    logger.warning("Could not unload request LoRAs cleanly: %s", error)
+
+    def _configure_scheduler(self, pipeline: Any, sampler: Optional[str]) -> None:
+        """Apply a request-scoped scheduler without sharing scheduler state."""
+        if not sampler:
+            return
+        from diffusers.schedulers.scheduling_ddim import DDIMScheduler
+        from diffusers.schedulers.scheduling_dpmsolver_multistep import DPMSolverMultistepScheduler
+        from diffusers.schedulers.scheduling_euler_ancestral_discrete import EulerAncestralDiscreteScheduler
+        from diffusers.schedulers.scheduling_euler_discrete import EulerDiscreteScheduler
+        scheduler_classes = {
+            "dpmpp_2m_karras": DPMSolverMultistepScheduler,
+            "euler_a": EulerAncestralDiscreteScheduler,
+            "euler": EulerDiscreteScheduler,
+            "ddim": DDIMScheduler,
+        }
+        scheduler_class = scheduler_classes.get(sampler)
+        if scheduler_class is None:
+            raise ValueError(f"Unsupported sampler '{sampler}'.")
+        options = {"use_karras_sigmas": True} if sampler == "dpmpp_2m_karras" else {}
+        pipeline.scheduler = scheduler_class.from_config(pipeline.scheduler.config, **options)
+
     def _build_progress_callback(self, job_id: str, total_steps: int):
         """Factory for the diffusers `callback` that updates job progress and notifies WebSocket clients."""
         last_update = [0.0]
@@ -619,16 +697,33 @@ class ImageGenService:
             png_meta.add_text("seed", str(seed))
         png_meta.add_text("steps", str(steps))
         png_meta.add_text("guidance_scale", str(cfg))
-        if getattr(request, "width", None):
-            png_meta.add_text("width", str(request.width))
-        if getattr(request, "height", None):
-            png_meta.add_text("height", str(request.height))
+        png_meta.add_text("width", str(img.width))
+        png_meta.add_text("height", str(img.height))
         if hasattr(request, "strength"):
             png_meta.add_text("strength", str(request.strength))
         png_meta.add_text("software", "OpenImageGen v0.2.0")
         img.save(filepath, "PNG", pnginfo=png_meta)
 
-    def generate_images(self, job_id: str, request: ImageGenerationRequest) -> None:
+    def _save_processed_reference(self, job_id: str, reference: Dict[str, Any]) -> str:
+        """Materialize a transformed uploaded image as a normal job artifact."""
+        source = reference.get("source")
+        if not source:
+            raise ValueError("The processed image has no uploaded source.")
+        source_path = self.get_upload_path(str(source))
+        if source_path is None:
+            raise FileNotFoundError(f"Source image '{source}' was not found or has expired.")
+        with PILImage.open(source_path) as source_image:
+            image = apply_image_operations(source_image, reference.get("operations", []))
+        filename = f"image_{job_id}_0.png"
+        image.save(self.output_folder / filename, "PNG")
+        return f"/download/{job_id}/0"
+
+    def generate_images(
+        self,
+        job_id: str,
+        request: ImageGenerationRequest,
+        postprocess: Optional[List[Dict[str, Any]]] = None,
+    ) -> None:
         """Execute text-to-image generation in a background task."""
         job = self.jobs.get(job_id)
         if job is None:
@@ -640,6 +735,7 @@ class ImageGenService:
             logger.info(f"Job {job_id} was cancelled before generation started.")
             return
 
+        job.active_node_ids = []
         job.status = "processing"
         job.progress = 0
         job.message = "Starting generation..."
@@ -682,6 +778,7 @@ class ImageGenService:
 
         adapter = self.adapters[model_key]
         self.model_last_used[model_key] = time.time()
+        self._configure_scheduler(pipeline, getattr(request, "sampler", None))
         adapter_defaults = adapter.get_default_params()
         merged_defaults = {**self.generation_defaults, **adapter_defaults}
 
@@ -724,7 +821,7 @@ class ImageGenService:
                 if self.device.type != "cpu"
                 else nullcontext()
             )
-            with torch.no_grad(), autocast_ctx:
+            with torch.no_grad(), autocast_ctx, self._active_loras(pipeline, adapter, request):
                 images: List[Any] = adapter.generate(
                     pipeline=pipeline,
                     prompt=request.prompt,
@@ -739,8 +836,11 @@ class ImageGenService:
                     callback_steps=1,
                 )
 
+            if postprocess:
+                job.message = "Applying workflow image processing…"
+                images = [apply_image_operations(image, postprocess) for image in images]
+
             elapsed = time.time() - start
-            logger.info(f"Job {job_id}: generated {len(images)} image(s) in {elapsed:.2f}s")
 
             image_urls: List[str] = []
             save_errors: List[str] = []
@@ -782,7 +882,12 @@ class ImageGenService:
                 torch.cuda.empty_cache()
                 logger.debug(f"Job {job_id}: cleared CUDA cache.")
 
-    def generate_img2img(self, job_id: str, request: ImageToImageRequest) -> None:
+    def generate_img2img(
+        self,
+        job_id: str,
+        request: ImageToImageRequest,
+        postprocess: Optional[List[Dict[str, Any]]] = None,
+    ) -> None:
         """Execute image-to-image generation in a background task."""
         job = self.jobs.get(job_id)
         if job is None:
@@ -818,6 +923,7 @@ class ImageGenService:
         if request.width and request.height:
             init_image = init_image.resize((request.width, request.height), PILImage.Resampling.LANCZOS)
 
+        job.active_node_ids = []
         job.status = "processing"
         job.progress = 0
         job.message = "Starting img2img generation..."
@@ -859,6 +965,7 @@ class ImageGenService:
             return
 
         adapter = self.adapters[model_key]
+        self._configure_scheduler(pipeline, getattr(request, "sampler", None))
         if not adapter.supports_img2img():
             msg = f"Model '{model_key}' does not support img2img generation."
             logger.error(f"Job {job_id}: {msg}")
@@ -914,7 +1021,7 @@ class ImageGenService:
                 if self.device.type != "cpu"
                 else nullcontext()
             )
-            with torch.no_grad(), autocast_ctx:
+            with torch.no_grad(), autocast_ctx, self._active_loras(pipeline, adapter, request):
                 images: List[Any] = adapter.generate_img2img(
                     pipeline=pipeline,
                     prompt=request.prompt,

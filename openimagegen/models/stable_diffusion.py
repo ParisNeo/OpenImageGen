@@ -145,4 +145,7 @@ class StableDiffusionAdapter(BaseModelAdapter):
         return img2img_pipe(**kwargs).images
 
     def get_default_params(self) -> dict:
-        return {"guidance_scale": 7.5, "num_inference_steps": 50, "num_images_per_prompt": 1}
+        model_name = str(self.config_overrides.get("repository", "")).lower()
+        if "turbo" in model_name:
+            return {"guidance_scale": 0.0, "num_inference_steps": 2, "num_images_per_prompt": 1}
+        return {"guidance_scale": 7.0, "num_inference_steps": 30, "num_images_per_prompt": 1}

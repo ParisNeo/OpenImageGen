@@ -133,6 +133,13 @@
     try {
         keyInput.value = localStorage.getItem('oig_api_key_v1') || '';
     } catch {}
+    const toggleKeyButton = document.getElementById('toggleApiKey');
+    toggleKeyButton?.addEventListener('click', () => {
+        const showing = keyInput.type === 'text';
+        keyInput.type = showing ? 'password' : 'text';
+        toggleKeyButton.textContent = showing ? 'Show' : 'Hide';
+        toggleKeyButton.setAttribute('aria-label', `${showing ? 'Show' : 'Hide'} API key`);
+    });
     keyInput.addEventListener('change', () => {
         try {
             if (keyInput.value.trim()) localStorage.setItem('oig_api_key_v1', keyInput.value.trim());

@@ -110,7 +110,22 @@ button { color: inherit; }
 }
 .ws-node.selected { border-color: var(--accent); box-shadow: 0 0 0 2px #10b98128, var(--shadow); }
 .ws-node.invalid { border-color: var(--danger); }
-.ws-node.running { border-color: var(--warning); }
+.ws-node.running {
+    border-color: var(--warning);
+    box-shadow: 0 0 0 2px #f59e0b45, 0 0 24px #f59e0b55, var(--shadow);
+    animation: ws-running-node 1.25s ease-in-out infinite;
+}
+.ws-node.running .ws-node-header::after {
+    content: 'RUNNING';
+    position: absolute;
+    right: 56px;
+    font-size: 8px;
+    letter-spacing: .08em;
+    color: #fff7d6;
+}
+@keyframes ws-running-node {
+    50% { border-color: #fde68a; box-shadow: 0 0 0 3px #f59e0b65, 0 0 32px #f59e0b70, var(--shadow); }
+}
 .ws-node-header {
     height: 32px; display: flex; align-items: center; justify-content: space-between; gap: 6px;
     padding: 0 8px 0 10px; border-radius: 8px 8px 0 0; color: white;
@@ -141,7 +156,9 @@ button { color: inherit; }
 .ws-port.connected { background: var(--port-color, var(--accent)); }
 .ws-port.disabled { opacity: .25; cursor: not-allowed; }
 .ws-node-body { display: grid; gap: 8px; padding: 10px; user-select: text; }
-.ws-node.collapsed .ws-node-body, .ws-node.collapsed .ws-ports { display: none; }
+.ws-node.collapsed .ws-node-body { display: none; }
+.ws-node.collapsed .ws-ports { border-bottom: 0; padding: 3px 0 5px; }
+.ws-node.collapsed .ws-node-header { border-radius: 8px 8px 0 0; }
 .ws-field { display: grid; gap: 3px; }
 .ws-field label { color: var(--dim); font-size: 9px; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; }
 .ws-field input, .ws-field select { width: 100%; height: 29px; padding: 4px 7px; font-size: 11px; }
@@ -152,6 +169,19 @@ button { color: inherit; }
 .ws-model-browser .btn { min-height: 29px; padding: 4px 7px; }
 .ws-upload-preview { display: none; width: 100%; max-height: 110px; object-fit: cover; border-radius: 5px; border: 1px solid var(--border); }
 .ws-upload-preview.visible { display: block; }
+.ws-text-result {
+    max-height: 180px;
+    overflow: auto;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: var(--input);
+    color: var(--text);
+    font: 11px/1.5 ui-monospace, monospace;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    user-select: text;
+}
 .ws-canvas-tools {
     position: absolute; left: 12px; bottom: 12px; z-index: 10; display: flex; gap: 5px;
     padding: 5px; border: 1px solid var(--border); border-radius: 8px; background: #11161ce8; box-shadow: var(--shadow);
@@ -220,7 +250,10 @@ textarea.inspector-input { min-height: 80px; resize: vertical; }
         </a>
         <input class="ws-name" id="workflowName" value="untitled_workflow" aria-label="Workflow name">
         <div class="ws-toolbar">
-            <input class="ws-api-key" id="apiKeyInput" type="password" placeholder="API key (optional)" autocomplete="off" aria-label="API key">
+            <span style="display:flex;gap:4px;align-items:center;">
+                <input class="ws-api-key" id="apiKeyInput" type="password" placeholder="API key (optional)" autocomplete="off" aria-label="API key">
+                <button class="btn" id="toggleApiKey" type="button" title="Show or hide API key" aria-label="Show API key">Show</button>
+            </span>
             <button class="btn" id="loadBtn">📂 Load</button>
             <button class="btn" id="saveBtn">💾 Save</button>
             <button class="btn" id="arrangeBtn">↔ Arrange</button>
@@ -241,7 +274,7 @@ textarea.inspector-input { min-height: 80px; resize: vertical; }
                 <strong>Connect:</strong> drag from a right output port to a left input port, or click each port in sequence.<br><br>
                 <strong>Navigate:</strong> drag empty space to pan, scroll to zoom, and drag headers to move nodes.<br><br>
                 <strong>Disconnect:</strong> click a connected input port. Press Delete to remove the selected node.<br><br>
-                <strong>Generate:</strong> Sampler/Img2Img → Output → Preview Image. Output's image port resolves after generation. Load Image → Preview Image displays an input immediately.
+                <strong>Generate:</strong> connect Sampler/Img2Img <em>generated image</em> directly to Preview Image, then run. Use <em>generation params</em> only for Output. Load Image → Preview Image displays an input immediately.
             </div>
         </aside>
 
@@ -287,6 +320,7 @@ const STORAGE_KEY = 'oig_workflow_v2';
 const LEGACY_STORAGE_KEY = 'oig_workflow_v1';
 const API_KEY_STORAGE = 'oig_api_key_v1';
 const TEMPLATE_STORAGE_KEY = 'oig_node_templates_v1';
+const NODE_SECRET_STORAGE_KEY = 'oig_node_browser_secrets_v1';
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 let NODE_SPECS = {
@@ -304,6 +338,10 @@ let NODE_SPECS = {
     },
     sampler: {
         title: '⚙ Sampler', color: '#db2777', output: { kind: 'params', label: 'generation params' },
+        outputs: [
+            { slot: 'params', kind: 'params', label: 'generation params' },
+            { slot: 'image', kind: 'image', label: 'generated image (after run)' }
+        ],
         inputs: [
             { slot: 'prompt', label: 'prompt', accepts: 'text', required: true },
             { slot: 'negative_prompt', label: 'negative', accepts: 'text' },
@@ -313,13 +351,21 @@ let NODE_SPECS = {
             { key: 'width', label: 'Width', type: 'number', default: 512, min: 64, max: 2048, step: 8 },
             { key: 'height', label: 'Height', type: 'number', default: 512, min: 64, max: 2048, step: 8 },
             { key: 'num_inference_steps', label: 'Steps', type: 'number', default: 30, min: 1, max: 200, step: 1 },
-            { key: 'guidance_scale', label: 'CFG', type: 'number', default: 7.5, min: 0, max: 30, step: .5 },
+            { key: 'guidance_scale', label: 'CFG', type: 'number', default: 7, min: 0, max: 30, step: .5 },
+            { key: 'sampler', label: 'Sampler', type: 'select', default: 'dpmpp_2m_karras', options: [
+                { value: 'dpmpp_2m_karras', label: 'DPM++ 2M Karras' }, { value: 'euler_a', label: 'Euler Ancestral' },
+                { value: 'euler', label: 'Euler' }, { value: 'ddim', label: 'DDIM' }
+            ] },
             { key: 'seed', label: 'Seed (−1 = random)', type: 'number', default: -1, step: 1 },
             { key: 'num_images_per_prompt', label: 'Batch', type: 'number', default: 1, min: 1, max: 8, step: 1 }
         ]
     },
     img2img: {
         title: '🎨 Img2Img', color: '#e11d48', output: { kind: 'params', label: 'generation params' },
+        outputs: [
+            { slot: 'params', kind: 'params', label: 'generation params' },
+            { slot: 'image', kind: 'image', label: 'generated image (after run)' }
+        ],
         inputs: [
             { slot: 'image', label: 'image', accepts: 'image', required: true },
             { slot: 'prompt', label: 'prompt', accepts: 'text', required: true },
@@ -348,6 +394,8 @@ const state = {
     dragging: null, panning: null, connecting: null,
     currentJobId: null, websocket: null, pollTimer: null, pollInFlight: false,
     generatedImageUrls: [],
+    nodeResults: {},
+    runningNodeIds: new Set(),
     templates: []
 };
 const els = {};
@@ -401,6 +449,36 @@ async function apiFetch(path, options = {}) {
     return response.json();
 }
 
+function readBrowserNodeSecrets() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(NODE_SECRET_STORAGE_KEY) || '{}');
+        return saved && typeof saved === 'object' && !Array.isArray(saved) ? saved : {};
+    } catch { return {}; }
+}
+
+function saveBrowserNodeSecrets() {
+    const secrets = {};
+    state.nodes.forEach(node => {
+        if (node.type === 'openai_compatible' && node.params.remember_api_key && node.params.api_key) {
+            secrets[node.id] = { api_key: node.params.api_key };
+        }
+    });
+    try {
+        if (Object.keys(secrets).length) localStorage.setItem(NODE_SECRET_STORAGE_KEY, JSON.stringify(secrets));
+        else localStorage.removeItem(NODE_SECRET_STORAGE_KEY);
+    } catch (error) { console.warn('Could not persist browser node credentials:', error); }
+}
+
+function restoreBrowserNodeSecrets() {
+    const secrets = readBrowserNodeSecrets();
+    state.nodes.forEach(node => {
+        if (node.type === 'openai_compatible' && secrets[node.id]?.api_key) {
+            node.params.api_key = secrets[node.id].api_key;
+            node.params.remember_api_key = true;
+        }
+    });
+}
+
 function scheduleSave() {
     clearTimeout(saveTimer);
     saveTimer = setTimeout(saveLocal, 250);
@@ -408,6 +486,7 @@ function scheduleSave() {
 
 function saveLocal() {
     try {
+        saveBrowserNodeSecrets();
         localStorage.setItem(STORAGE_KEY, JSON.stringify(serializeWorkflow(true, false)));
         if (els.apiKeyInput.value.trim()) localStorage.setItem(API_KEY_STORAGE, els.apiKeyInput.value.trim());
         else localStorage.removeItem(API_KEY_STORAGE);
@@ -458,7 +537,14 @@ function normalizeWorkflow(data) {
             const sourceIndex = data.nodes.indexOf(source);
             const actualSource = nodes[sourceIndex];
             const inputSpec = NODE_SPECS[target.type].inputs.find(input => input.slot === slot);
-            if (NODE_SPECS[actualSource.type].output?.kind === inputSpec.accepts) target.inputs[slot] = actualSource.id;
+            const requestedSlot = String(sourceId).includes('.') ? String(sourceId).split('.')[1] : null;
+            const outputs = NODE_SPECS[actualSource.type].outputs || [NODE_SPECS[actualSource.type].output].filter(Boolean);
+            const output = requestedSlot
+                ? outputs.find(item => item.slot === requestedSlot)
+                : outputs[0];
+            if (output?.kind === inputSpec.accepts) {
+                target.inputs[slot] = requestedSlot ? `${actualSource.id}.${requestedSlot}` : actualSource.id;
+            }
         });
     });
     return { name: String(data.name || 'untitled_workflow'), nodes, viewport: data.viewport };
@@ -470,6 +556,7 @@ function loadLocal() {
         if (!raw) return false;
         const data = normalizeWorkflow(JSON.parse(raw));
         state.nodes = data.nodes;
+        restoreBrowserNodeSecrets();
         els.workflowName.value = data.name;
         if (data.viewport) {
             state.panX = Number(data.viewport.panX) || 0;
@@ -496,7 +583,9 @@ function saveNodeAsTemplate(node) {
     const name = prompt('Template name:', `${NODE_SPECS[node.type].title.replace(/^\S+\s*/, '')} preset`);
     if (!name?.trim()) return;
     const secretKeys = new Set(NODE_SPECS[node.type].fields.filter(field => field.secret).map(field => field.key));
-    const params = Object.fromEntries(Object.entries(node.params).filter(([key]) => !secretKeys.has(key)));
+    const params = Object.fromEntries(Object.entries(node.params).filter(([key]) =>
+        !secretKeys.has(key) && key !== 'remember_api_key'
+    ));
     const template = {
         id: uid(), name: name.trim(), type: node.type,
         params: JSON.parse(JSON.stringify(params))
@@ -587,7 +676,9 @@ function clientToWorld(clientX, clientY) {
 function portPosition(nodeId, direction, slot = null) {
     const element = nodeElement(nodeId);
     if (!element) return null;
-    const selector = direction === 'output' ? '.ws-port.output' : `.ws-port.input[data-slot="${slot}"]`;
+    const selector = direction === 'output'
+        ? `.ws-port.output${slot ? `[data-slot="${slot}"]` : ''}`
+        : `.ws-port.input[data-slot="${slot}"]`;
     const port = element.querySelector(selector);
     if (!port) return null;
     const portRect = port.getBoundingClientRect();
@@ -610,7 +701,7 @@ function renderEdges() {
         Object.entries(target.inputs).forEach(([slot, reference]) => {
             const actualSourceId = String(reference).split('.')[0];
             const source = getNode(actualSourceId);
-            const from = portPosition(actualSourceId, 'output');
+            const from = portPosition(actualSourceId, 'output', sourceOutput(reference));
             const to = portPosition(target.id, 'input', slot);
             if (!source || !from || !to) return;
             const pathData = makePath(from, to);
@@ -636,7 +727,7 @@ function renderEdges() {
         });
     });
     if (state.connecting?.pointer) {
-        const from = portPosition(state.connecting.sourceId, 'output');
+        const from = portPosition(state.connecting.sourceId, 'output', state.connecting.outputSlot);
         if (from) {
             const path = document.createElementNS(SVG_NS, 'path');
             path.setAttribute('d', makePath(from, state.connecting.pointer));
@@ -652,8 +743,15 @@ function inputSpecFor(node, slot) {
     return NODE_SPECS[node.type].inputs.find(input => input.slot === slot);
 }
 
+function connectedModelNode(node, visited = new Set()) {
+    if (!node || visited.has(node.id)) return null;
+    visited.add(node.id);
+    if (node.type === 'model') return node;
+    return connectedModelNode(getNode(sourceId(node.inputs.model)), visited);
+}
+
 function connectedModel(node) {
-    const modelNode = getNode(node.inputs.model);
+    const modelNode = connectedModelNode(node);
     return modelNode ? getModel(modelNode.params.model_name) : null;
 }
 
@@ -669,7 +767,7 @@ function renderNodes() {
     state.nodes.forEach(node => {
         const spec = NODE_SPECS[node.type];
         const element = document.createElement('article');
-        element.className = `ws-node${node.id === state.selectedId ? ' selected' : ''}${node.collapsed ? ' collapsed' : ''}`;
+        element.className = `ws-node${node.id === state.selectedId ? ' selected' : ''}${node.collapsed ? ' collapsed' : ''}${state.runningNodeIds.has(node.id) ? ' running' : ''}`;
         element.dataset.id = node.id;
         element.style.left = `${node.x}px`;
         element.style.top = `${node.y}px`;
@@ -723,28 +821,42 @@ function renderNodes() {
             row.append(port, label);
             ports.appendChild(row);
         });
-        if (spec.output) {
+        (spec.outputs || [spec.output].filter(Boolean)).forEach(output => {
             const row = document.createElement('div');
             row.className = 'ws-port-row output-row';
             const label = document.createElement('span');
             label.className = 'ws-port-label';
-            label.textContent = spec.output.label;
+            label.textContent = output.label;
             const port = document.createElement('button');
             port.type = 'button';
-            port.className = `ws-port output${state.connecting?.sourceId === node.id ? ' active' : ''}`;
+            port.className = `ws-port output${state.connecting?.sourceId === node.id && state.connecting?.outputSlot === output.slot ? ' active' : ''}`;
             port.dataset.nodeId = node.id;
-            port.style.setProperty('--port-color', spec.color);
-            port.title = `Drag or click to connect ${spec.output.kind}`;
-            port.addEventListener('pointerdown', event => beginConnection(event, node.id));
+            port.dataset.slot = output.slot;
+            port.style.setProperty('--port-color', output.kind === 'image' ? '#a855f7' : spec.color);
+            port.title = `Drag or click to connect ${output.kind}`;
+            port.addEventListener('pointerdown', event => beginConnection(event, node.id, output.slot));
             row.append(label, port);
             ports.appendChild(row);
-        }
+        });
         element.appendChild(ports);
 
         const body = document.createElement('div');
         body.className = 'ws-node-body';
         spec.fields.forEach(field => body.appendChild(createNodeField(node, field)));
         if (node.type === 'sampler' || node.type === 'img2img') {
+            const reset = document.createElement('button');
+            reset.type = 'button';
+            reset.className = 'btn';
+            reset.textContent = '↺ Reset settings for selected model';
+            reset.title = 'Restore recommended resolution, steps, CFG, and sampler for the connected checkpoint';
+            reset.addEventListener('click', () => {
+                const modelNode = connectedModelNode(node);
+                if (!modelNode) return showToast('Connect a Model node first.', 'warning');
+                applyModelDefaults(modelNode, true);
+                renderAll();
+                scheduleSave();
+            });
+            body.appendChild(reset);
             const model = connectedModel(node);
             const note = document.createElement('div');
             note.className = 'ws-model-note';
@@ -752,6 +864,13 @@ function renderNodes() {
                 ? `${model.key} · ${model.supports_negative_prompt ? 'negative prompt supported' : 'no negative prompt'} · ${model.downloaded ? 'cached' : 'auto-download'}`
                 : 'No model connected: the server default will be used.';
             body.appendChild(note);
+        }
+        const textResult = state.nodeResults[node.id]?.text;
+        if (node.type === 'text_output' && typeof textResult === 'string') {
+            const result = document.createElement('pre');
+            result.className = 'ws-text-result';
+            result.textContent = textResult || '(empty text)';
+            body.appendChild(result);
         }
         const previewUrl = nodePreviewUrl(node);
         if (previewUrl) {
@@ -777,7 +896,10 @@ function nodePreviewUrl(node) {
     if (node.type === 'output') return state.generatedImageUrls[0] || null;
     const source = getNode(sourceId(node.inputs.image));
     if (!source) return null;
-    if (source.type === 'output') return state.generatedImageUrls[0] || null;
+    if (['output', 'sampler', 'img2img'].includes(source.type)) return state.generatedImageUrls[0] || null;
+    if (['image_upscale', 'image_resize', 'image_filter'].includes(source.type)) {
+        return nodePreviewUrl({ type: 'image_preview', inputs: { image: source.inputs.image } });
+    }
     if (source.type === 'image_loader' && source.params.image_id) return `/uploads/${source.params.image_id}`;
     return null;
 }
@@ -867,7 +989,7 @@ function createNodeField(node, field) {
     } else if (field.type === 'boolean') {
         input = document.createElement('input');
         input.type = 'checkbox';
-        input.checked = node.params[field.key] !== false;
+        input.checked = node.params[field.key] === true || (field.default === true && node.params[field.key] !== false);
         input.style.width = '18px';
         input.style.height = '18px';
         input.addEventListener('change', () => updateParam(node, field.key, input.checked));
@@ -875,9 +997,27 @@ function createNodeField(node, field) {
         input = document.createElement('input');
         input.type = 'password';
         input.autocomplete = 'off';
-        input.placeholder = field.placeholder || 'Not saved or exported';
+        input.placeholder = field.placeholder || 'Not exported';
         input.value = node.params[field.key] ?? '';
         input.addEventListener('input', () => updateParam(node, field.key, input.value));
+        const secretRow = document.createElement('div');
+        secretRow.className = 'ws-model-browser';
+        const toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'btn';
+        toggle.textContent = 'Show';
+        toggle.setAttribute('aria-label', `Show ${field.label}`);
+        toggle.addEventListener('click', () => {
+            const showing = input.type === 'text';
+            input.type = showing ? 'password' : 'text';
+            toggle.textContent = showing ? 'Show' : 'Hide';
+            toggle.setAttribute('aria-label', `${showing ? 'Show' : 'Hide'} ${field.label}`);
+        });
+        secretRow.append(input, toggle);
+        wrapper.appendChild(secretRow);
+        input.dataset.nodeField = field.key;
+        input.addEventListener('pointerdown', event => event.stopPropagation());
+        return wrapper;
     } else if (field.type === 'select') {
         input = document.createElement('select');
         (field.options || []).forEach(option => input.appendChild(new Option(option.label, option.value)));
@@ -934,14 +1074,26 @@ function updateParam(node, key, value) {
     scheduleSave();
 }
 
-function applyModelDefaults(modelNode) {
+function applyModelDefaults(modelNode, forceReset = false) {
     const model = getModel(modelNode.params.model_name);
     if (!model) return;
     const isFlux = model.type === 'flux' || model.type === 'flux_gguf';
+    const isQwen = model.type === 'qwen_image';
+    const isTurbo = model.type === 'stable_diffusion' && model.name.toLowerCase().includes('turbo');
+    const isSDXL = model.type === 'stable_diffusion_xl';
     state.nodes.forEach(node => {
-        if (node.inputs.model !== modelNode.id || !['sampler', 'img2img'].includes(node.type)) return;
-        node.params.num_inference_steps = isFlux ? 4 : 30;
-        node.params.guidance_scale = isFlux ? 0 : 7.5;
+        if (connectedModelNode(node)?.id !== modelNode.id || !['sampler', 'img2img'].includes(node.type)) return;
+        if (!forceReset && node.modelDefaultsKey === modelNode.params.model_name) return;
+        node.modelDefaultsKey = modelNode.params.model_name;
+        node.params.num_inference_steps = isFlux ? 4 : isQwen ? 50 : isTurbo ? 2 : 30;
+        node.params.guidance_scale = isFlux || isTurbo ? 0 : isQwen ? 4 : 7;
+        node.params.sampler = 'dpmpp_2m_karras';
+        node.params.width = isSDXL ? 1024 : 512;
+        node.params.height = node.params.width;
+        if (isQwen) {
+            node.params.width = 1328;
+            node.params.height = 1328;
+        }
         if (isFlux) {
             node.params.width = model.key.includes('q8') ? 1024 : 512;
             node.params.height = node.params.width;
@@ -951,13 +1103,13 @@ function applyModelDefaults(modelNode) {
     scheduleSave();
 }
 
-function beginConnection(event, sourceId) {
+function beginConnection(event, sourceId, outputSlot) {
     if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
     cancelConnection();
     state.connecting = {
-        sourceId, startX: event.clientX, startY: event.clientY,
+        sourceId, outputSlot, startX: event.clientX, startY: event.clientY,
         moved: false, pointer: clientToWorld(event.clientX, event.clientY)
     };
     renderNodes();
@@ -987,10 +1139,11 @@ function completeConnection(targetId, slot, outputSlot = null) {
     const target = getNode(targetId);
     if (!source || !target) return cancelConnection();
     const input = inputSpecFor(target, slot);
-    const output = NODE_SPECS[source.type].output;
+    const outputs = NODE_SPECS[source.type].outputs || [NODE_SPECS[source.type].output].filter(Boolean);
+    const output = outputs.find(item => item.slot === connecting.outputSlot);
     if (!input || !output || input.accepts !== output.kind) {
         const message = output?.kind === 'params' && input?.accepts === 'image'
-            ? 'Generation params are not an image. Connect them to Output and run the workflow. Preview Image accepts Load Image output only.'
+            ? 'Use the sampler’s generated image output, not generation params. The image appears after Run workflow.'
             : `Incompatible ports: ${output?.kind || 'none'} cannot connect to ${input?.accepts || slot}.`;
         showToast(message, 'error', 6500);
         return cancelConnection();
@@ -999,8 +1152,7 @@ function completeConnection(targetId, slot, outputSlot = null) {
         showToast('That connection would create a cycle.', 'error');
         return cancelConnection();
     }
-    target.inputs[slot] = outputSlot && outputSlot !== NODE_SPECS[source.type].outputs?.[0]?.slot
-        ? `${source.id}.${outputSlot}` : source.id;
+    target.inputs[slot] = `${source.id}.${connecting.outputSlot}`;
     cancelConnection(false);
     renderAll();
     scheduleSave();
@@ -1014,7 +1166,10 @@ function reaches(start, targetId) {
         if (!node || visited.has(node.id)) continue;
         if (node.id === targetId) return true;
         visited.add(node.id);
-        Object.values(node.inputs).forEach(id => { const source = getNode(id); if (source) pending.push(source); });
+        Object.values(node.inputs).forEach(reference => {
+            const source = getNode(sourceId(reference));
+            if (source) pending.push(source);
+        });
     }
     return false;
 }
@@ -1114,7 +1269,7 @@ function arrangeNodes() {
         if (depths.has(node.id)) return depths.get(node.id);
         if (visiting.has(node.id)) return 0;
         visiting.add(node.id);
-        const parents = Object.values(node.inputs).map(getNode).filter(Boolean);
+        const parents = Object.values(node.inputs).map(reference => getNode(sourceId(reference))).filter(Boolean);
         const value = parents.length ? Math.max(...parents.map(parent => depth(parent, visiting))) + 1 : 0;
         depths.set(node.id, value);
         return value;
@@ -1179,6 +1334,20 @@ function renderInspector() {
         input.dataset.inspectorField = field.key;
         if (field.type === 'boolean') input.checked = node.params[field.key] !== false;
         else input.value = node.params[field.key] ?? '';
+        if (field.type === 'password') {
+            const toggle = document.createElement('button');
+            toggle.type = 'button';
+            toggle.className = 'btn';
+            toggle.textContent = 'Show secret';
+            toggle.addEventListener('click', () => {
+                const showing = input.type === 'text';
+                input.type = showing ? 'password' : 'text';
+                toggle.textContent = showing ? 'Show secret' : 'Hide secret';
+            });
+            wrapper.append(label, input, toggle);
+        } else {
+            wrapper.append(label, input);
+        }
         input.addEventListener(['model', 'select', 'boolean'].includes(field.type) ? 'change' : 'input', () => {
             const value = field.type === 'boolean' ? input.checked : field.type === 'number' ? (input.value === '' ? null : Number(input.value)) : input.value;
             updateParam(node, field.key, value);
@@ -1246,9 +1415,14 @@ function validateWorkflow() {
     if (!outputs.length) errors.push('Add an Output or Preview node.');
     state.nodes.forEach(node => {
         NODE_SPECS[node.type].inputs.forEach(input => {
-            const source = getNode(node.inputs[input.slot]);
+            const reference = node.inputs[input.slot];
+            const source = getNode(sourceId(reference));
             if (input.required && !source) errors.push(`${NODE_SPECS[node.type].title}: connect required input “${input.label}”.`);
-            if (source && NODE_SPECS[source.type].output?.kind !== input.accepts) errors.push(`${node.id}: invalid ${input.slot} connection.`);
+            if (source) {
+                const outputs = NODE_SPECS[source.type].outputs || [NODE_SPECS[source.type].output].filter(Boolean);
+                const output = outputs.find(item => item.slot === sourceOutput(reference));
+                if (output?.kind !== input.accepts) errors.push(`${node.id}: invalid ${input.slot} connection.`);
+            }
         });
         if (node.type === 'text_prompt' && !String(node.params.text || '').trim()) errors.push(`${node.id}: prompt is empty.`);
         if (node.type === 'model' && !getModel(node.params.model_name)) errors.push(`${node.id}: select a configured model.`);
@@ -1299,6 +1473,8 @@ async function runWorkflow() {
     }
     saveLocal();
     state.generatedImageUrls = [];
+    state.nodeResults = {};
+    state.runningNodeIds.clear();
     renderNodes();
     els.runBtn.disabled = true;
     els.cancelBtn.hidden = false;
@@ -1345,8 +1521,38 @@ async function pollJob(jobId) {
     } finally { state.pollInFlight = false; }
 }
 
+function updateRunningNodes(job) {
+    let activeIds = new Set(job.active_node_ids || []);
+    const message = String(job.message || '').toLowerCase();
+    if (job.status === 'processing' && !activeIds.size) {
+        if (message.includes('loading model')) {
+            state.nodes.filter(node => node.type === 'model').forEach(node => activeIds.add(node.id));
+        }
+        if (message.includes('generat') || message.includes('transforming image')) {
+            state.nodes.filter(node => ['sampler', 'img2img'].includes(node.type))
+                .forEach(node => activeIds.add(node.id));
+        }
+        if (message.includes('image processing')) {
+            state.nodes.filter(node => ['image_upscale', 'image_resize', 'image_filter'].includes(node.type))
+                .forEach(node => activeIds.add(node.id));
+        }
+    }
+    const changed = activeIds.size !== state.runningNodeIds.size
+        || [...activeIds].some(id => !state.runningNodeIds.has(id));
+    state.runningNodeIds = activeIds;
+    if (changed) {
+        state.nodes.forEach(node => {
+            nodeElement(node.id)?.classList.toggle('running', activeIds.has(node.id));
+        });
+        // A collapsed node's RUNNING badge changes its port geometry only in
+        // unusual narrow layouts; refreshing edges keeps wires glued to ports.
+        scheduleEdges();
+    }
+}
+
 function handleJob(job) {
     if (job.job_id !== state.currentJobId) return;
+    updateRunningNodes(job);
     if (job.status === 'pending') {
         setProgress(0); setStatus('running', 'Waiting for a generation worker…');
     } else if (job.status === 'processing') {
@@ -1355,7 +1561,22 @@ function handleJob(job) {
         if ((job.message || '').toLowerCase().includes('model')) window.OIGDownloads?.refresh();
     } else if (job.status === 'completed') {
         setProgress(100); setStatus('success', job.message || 'Workflow completed.');
-        renderResults(job.image_urls || []);
+        state.nodeResults = job.node_results || {};
+        if ((job.image_urls || []).length) {
+            renderResults(job.image_urls);
+        } else {
+            state.generatedImageUrls = [];
+            els.results.replaceChildren();
+            els.resultOverlay.hidden = true;
+            renderNodes();
+            const previewCount = Object.keys(state.nodeResults).length;
+            showToast(
+                previewCount
+                    ? `Workflow completed with ${previewCount} preview result${previewCount === 1 ? '' : 's'}.`
+                    : 'Workflow completed without image or preview results.',
+                'success'
+            );
+        }
         finishJob();
     } else if (job.status === 'failed') {
         setStatus('error', job.message || 'Workflow failed.');
@@ -1375,6 +1596,8 @@ function stopTracking(clearJob = true) {
 }
 
 function finishJob() {
+    state.runningNodeIds.clear();
+    state.nodes.forEach(node => nodeElement(node.id)?.classList.remove('running'));
     stopTracking();
     resetRunControls();
     loadModels();
@@ -1472,7 +1695,8 @@ function normalizeNodeSpec(spec) {
         ...spec,
         title: `${spec.icon || '🧩'} ${spec.title}`,
         inputs: (spec.inputs || []).map(input => ({ ...input, accepts: input.kind })),
-        output: spec.outputs?.[0] ? { ...spec.outputs[0], kind: spec.outputs[0].kind } : null
+        output: spec.outputs?.[0] ? { ...spec.outputs[0], kind: spec.outputs[0].kind } : null,
+        outputs: spec.outputs || []
     };
 }
 
@@ -1568,7 +1792,7 @@ function seedWorkflow() {
     const output = createNode('output', 770, 120);
     sampler.inputs.prompt = prompt.id;
     sampler.inputs.model = model.id;
-    output.inputs.params = sampler.id;
+    output.inputs.params = `${sampler.id}.params`;
     state.selectedId = sampler.id;
     renderAll();
     scheduleSave();
@@ -1606,6 +1830,7 @@ function bindEvents() {
             try {
                 const data = normalizeWorkflow(JSON.parse(await input.files[0].text()));
                 state.nodes = data.nodes;
+                restoreBrowserNodeSecrets();
                 state.selectedId = null;
                 els.workflowName.value = data.name;
                 renderAll();
@@ -1620,6 +1845,7 @@ function bindEvents() {
     els.clearBtn.addEventListener('click', () => {
         if (!state.nodes.length || !confirm('Remove all nodes from this workflow?')) return;
         state.nodes = []; state.selectedId = null;
+        state.runningNodeIds.clear();
         cancelConnection(false); renderAll(); scheduleSave();
     });
 
@@ -1656,6 +1882,13 @@ function bindEvents() {
 async function init() {
     cacheDom();
     try { els.apiKeyInput.value = localStorage.getItem(API_KEY_STORAGE) || ''; } catch {}
+    const toggleApiKey = document.getElementById('toggleApiKey');
+    toggleApiKey.addEventListener('click', () => {
+        const showing = els.apiKeyInput.type === 'text';
+        els.apiKeyInput.type = showing ? 'password' : 'text';
+        toggleApiKey.textContent = showing ? 'Show' : 'Hide';
+        toggleApiKey.setAttribute('aria-label', `${showing ? 'Show' : 'Hide'} API key`);
+    });
     bindEvents();
     try { await loadNodeSpecs(); } catch (error) { showToast(`Using built-in nodes: ${error.message}`, 'warning'); }
     loadNodeTemplates();
