@@ -71,6 +71,42 @@ class JobStatus(BaseModel):
     node_results: Dict[str, Any] = Field(default_factory=dict)
     active_node_ids: List[str] = Field(default_factory=list)
 
+class RemoteImageModelConfig(BaseModel):
+    """Persistent, non-secret configuration for a hosted image-generation model."""
+
+    name: str = Field(..., min_length=1, max_length=256)
+    base_url: str = Field("https://api.openai.com/v1", min_length=1, max_length=2048)
+    api_key_env: str = Field("OPENAI_API_KEY", max_length=128)
+    timeout_seconds: int = Field(180, ge=1, le=600)
+    verify_ssl: bool = True
+    quality: Optional[str] = Field(None, max_length=64)
+
+    @field_validator("name", "base_url")
+    @classmethod
+    def strip_required_text(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("This value cannot be empty.")
+        return value
+
+    @field_validator("api_key_env")
+    @classmethod
+    def validate_environment_variable(cls, value: str) -> str:
+        value = value.strip()
+        if value and (
+            not value.replace("_", "").isalnum() or value[0].isdigit()
+        ):
+            raise ValueError("API key environment variable name is invalid.")
+        return value
+
+    def to_model_config(self) -> Dict[str, Any]:
+        config: Dict[str, Any] = {
+            **self.model_dump(exclude_none=True),
+            "type": "openai_image",
+        }
+        return config
+
+
 class PreloadRequest(BaseModel):
     """Request body for POST /preload."""
 

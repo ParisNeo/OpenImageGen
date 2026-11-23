@@ -36,7 +36,8 @@ Project layout
    Public node API, built-in nodes, and trusted plugin discovery.
 
 ``openimagegen/static/``
-   Studio, workflow editor, GGUF catalog, and download-center frontend.
+   Studio, workflow editor, first-run onboarding, hosted-model configuration,
+   GGUF catalog, and download-center frontend.
 
 Contribution guidelines
 -----------------------

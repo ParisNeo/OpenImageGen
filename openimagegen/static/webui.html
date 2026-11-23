@@ -2911,7 +2911,10 @@ body, .app-header, .controls-panel, .panel-section, .preview-stage,
     <div class="header-actions">
         <input type="password" id="apiKeyInput" class="api-key-input" placeholder="API key (optional)" aria-label="API key" autocomplete="off">
         <button class="icon-button" id="toggleApiKey" type="button" title="Show or hide API key" aria-label="Show API key" style="width:auto;padding:0 9px;font-size:11px;">Show</button>
+        <button class="icon-button" id="apiModelsBtn" title="Configure hosted API models" aria-label="Configure hosted API models" style="width:auto;padding:0 10px;font-size:11px;font-weight:700;">API</button>
         <button class="icon-button" id="ggufCatalogBtn" title="GGUF model catalog" aria-label="GGUF model catalog" style="width:auto;padding:0 10px;font-size:11px;font-weight:700;">GGUF</button>
+        <button class="icon-button" id="onboardingBtn" type="button" title="Open the getting-started guide" aria-label="Open the getting-started guide" style="width:auto;padding:0 10px;font-size:11px;font-weight:700;">Guide</button>
+        <a href="/help/" class="icon-button" target="_blank" rel="noopener" title="Open Sphinx documentation" aria-label="Open documentation" style="text-decoration:none;font-size:16px;font-weight:700;">?</a>
         <a href="/workflow" class="icon-button" title="Node workflow editor" aria-label="Node workflow editor" style="text-decoration:none;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="5" cy="6" r="2"></circle>
@@ -4922,6 +4925,8 @@ if (document.readyState === 'loading') {
 }
 </script>
 <script src="/static/gguf.js"></script>
+<script src="/static/api_models.js"></script>
+<script src="/static/onboarding.js"></script>
 <script src="/static/downloads.js"></script>
 </body>
 </html>

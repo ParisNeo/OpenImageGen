@@ -58,6 +58,14 @@ Images and models
 ``GET /v1/downloads`` and ``GET /v1/downloads/{download_id}``
    Inspect persistent-for-process model download jobs.
 
+``GET /v1/api-models`` and ``PUT /v1/api-models/{model_key}``
+   List, create, or update hosted OpenAI-compatible image models. These are
+   administrator operations when authentication is enabled and persist to TOML.
+   Only environment variable names are accepted for credentials.
+
+``DELETE /v1/api-models/{model_key}``
+   Delete a hosted image model configuration and unload its cached pipeline.
+
 Workflow discovery
 ------------------
 

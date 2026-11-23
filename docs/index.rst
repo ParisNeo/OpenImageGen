@@ -29,6 +29,7 @@ Documentation
    :caption: User guide
 
    installation
+   onboarding
    quickstart
    configuration
    models

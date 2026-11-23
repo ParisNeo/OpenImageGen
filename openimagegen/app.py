@@ -12,6 +12,7 @@ from __future__ import annotations
 import asyncio
 import io
 import logging
+import os
 import time
 import uuid
 from contextlib import asynccontextmanager
@@ -42,6 +43,7 @@ from .schemas import (
     JobStatus,
     JobSubmissionResponse,
     PreloadRequest,
+    RemoteImageModelConfig,
 )
 from .models import get_registry
 from .nodes import get_node_registry
@@ -233,6 +235,7 @@ async def root_redirect():
 async def health_check() -> Dict:
     """Service health and configuration snapshot."""
     svc = _require_service()
+    torch = __import__("torch")
     return {
         "status": "healthy",
         "timestamp": time.time(),
@@ -243,12 +246,12 @@ async def health_check() -> Dict:
         "dtype": str(svc.dtype).split(".")[-1],
         "force_gpu": svc.force_gpu,
         "use_gpu": svc.use_gpu,
-        "torch_version": __import__("torch").__version__,
-        "torch_cuda_build": __import__("torch").version.cuda,
-        "cuda_available": __import__("torch").cuda.is_available(),
+        "torch_version": torch.__version__,
+        "torch_cuda_build": torch.version.cuda,
+        "cuda_available": torch.cuda.is_available(),
         "gpu_name": (
-            __import__("torch").cuda.get_device_name(0)
-            if __import__("torch").cuda.is_available()
+            torch.cuda.get_device_name(0)
+            if torch.cuda.is_available()
             else None
         ),
         "is_loading_models": svc.is_loading,
@@ -297,6 +300,78 @@ async def get_models() -> Dict:
             "execution_hint": svc.execution_hint(key, info),
         })
     return {"available_models": models}
+
+
+@app.get("/v1/api-models")
+async def list_api_models(user: UserContext = Depends(get_current_user)) -> Dict:
+    """List hosted image-provider configurations without exposing credentials."""
+    _require_admin(user)
+    svc = _require_service()
+    models = [
+        {"key": key, **info}
+        for key, info in svc.models_config.items()
+        if info.get("type") == "openai_image"
+    ]
+    return {"models": models}
+
+
+@app.put("/v1/api-models/{model_key}")
+async def configure_api_model(
+    model_key: str,
+    request: RemoteImageModelConfig,
+    user: UserContext = Depends(get_current_user),
+) -> Dict:
+    """Create or replace a hosted image model and persist it immediately."""
+    _require_admin(user)
+    svc = _require_service()
+    if not 2 <= len(model_key) <= 64 or not model_key.replace("_", "").replace("-", "").isalnum():
+        raise HTTPException(
+            status_code=400,
+            detail="Model key must be 2–64 letters, digits, underscores, or hyphens.",
+        )
+
+    model_config = request.to_model_config()
+    previous = svc.models_config.get(model_key)
+    svc.models_config[model_key] = model_config
+    svc.config.setdefault("models", {})[model_key] = model_config
+    try:
+        save_config(svc.config)
+    except Exception as error:
+        if previous is None:
+            svc.models_config.pop(model_key, None)
+            svc.config.get("models", {}).pop(model_key, None)
+        else:
+            svc.models_config[model_key] = previous
+            svc.config["models"][model_key] = previous
+        raise HTTPException(status_code=500, detail=f"Could not save configuration: {error}") from error
+
+    if previous != model_config and model_key in svc.pipelines:
+        svc.unload_model(model_key)
+    return {"key": model_key, **model_config}
+
+
+@app.delete("/v1/api-models/{model_key}")
+async def delete_api_model(
+    model_key: str,
+    user: UserContext = Depends(get_current_user),
+) -> Dict:
+    """Remove a hosted model configuration and unload any stale pipeline."""
+    _require_admin(user)
+    svc = _require_service()
+    previous = svc.models_config.get(model_key)
+    if previous is None or previous.get("type") != "openai_image":
+        raise HTTPException(status_code=404, detail="Hosted image model not found.")
+
+    del svc.models_config[model_key]
+    svc.config.get("models", {}).pop(model_key, None)
+    try:
+        save_config(svc.config)
+    except Exception as error:
+        svc.models_config[model_key] = previous
+        svc.config.setdefault("models", {})[model_key] = previous
+        raise HTTPException(status_code=500, detail=f"Could not save configuration: {error}") from error
+    svc.unload_model(model_key)
+    return {"status": "deleted", "key": model_key}
 
 
 @app.get("/v1/generation/templates")
@@ -698,3 +773,33 @@ if static_dir.exists():
     _workflow_handler = _serve_html("workflow.html", "Workflow editor")
     if _workflow_handler is not None:
         app.get("/workflow", response_class=HTMLResponse)(_workflow_handler)
+
+# Serve the generated Sphinx site separately from FastAPI's interactive /docs.
+# OPENIMAGEGEN_DOCS_DIR supports installed deployments where documentation is
+# hosted from a shared directory rather than the source checkout.
+default_help_dir = Path(__file__).resolve().parents[1] / "docs" / "_build" / "html"
+help_dir = Path(os.getenv("OPENIMAGEGEN_DOCS_DIR", str(default_help_dir))).expanduser()
+if (help_dir / "index.html").is_file():
+    app.mount("/help", StaticFiles(directory=help_dir, html=True), name="sphinx-help")
+    logger.info(f"Serving Sphinx documentation from: {help_dir}")
+else:
+    async def sphinx_help_unavailable() -> HTMLResponse:
+        return HTMLResponse(
+            """<!doctype html><html lang="en"><head><meta charset="utf-8">
+            <meta name="viewport" content="width=device-width,initial-scale=1">
+            <title>OpenImageGen help</title></head><body style="max-width:760px;margin:48px auto;
+            padding:0 24px;font:16px/1.6 system-ui;background:#10151b;color:#edf2f7">
+            <h1>OpenImageGen documentation</h1>
+            <p>The Sphinx HTML documentation has not been built for this installation.</p>
+            <p>From the source directory, run:</p>
+            <pre style="padding:16px;background:#171e26;border-radius:8px;overflow:auto"><code>python -m pip install -e ".[docs]"
+python -m sphinx -W --keep-going -b html docs docs/_build/html</code></pre>
+            <p>Restart the server afterward. Alternatively, set <code>OPENIMAGEGEN_DOCS_DIR</code>
+            to a directory containing the generated <code>index.html</code>.</p>
+            <p><a style="color:#34d399" href="/docs">Open the interactive API reference</a> ·
+            <a style="color:#34d399" href="/webui">Return to Studio</a></p></body></html>""",
+            status_code=503,
+        )
+
+    app.get("/help", include_in_schema=False)(sphinx_help_unavailable)
+    app.get("/help/", include_in_schema=False)(sphinx_help_unavailable)

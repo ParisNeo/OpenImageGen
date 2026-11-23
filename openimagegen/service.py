@@ -1147,7 +1147,17 @@ class ImageGenService:
 
         logger.info(f"Cleaning {len(expired_ids)} expired job(s)...")
         cleaned = 0
+        now = time.time()
+        active_grace_seconds = min(self.file_retention_time, 300)
         for job_id in expired_ids:
+            job = self.jobs.get(job_id)
+            if (
+                job is not None
+                and job.status in {"pending", "processing"}
+                and now - job.created_at < active_grace_seconds
+            ):
+                logger.debug(f"Keeping recently started active job {job_id} during cleanup.")
+                continue
             try:
                 for file_path in self.output_folder.glob(f"image_{job_id}_*.png"):
                     try:

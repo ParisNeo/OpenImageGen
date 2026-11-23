@@ -79,10 +79,15 @@ class TestImageGenerationRequest:
         with pytest.raises(ValidationError):
             ImageGenerationRequest(prompt="x", num_inference_steps=0)
 
-    def test_zero_guidance_rejected(self):
-        """Verify that a guidance scale of zero is rejected by the schema validator."""
+    def test_zero_guidance_allowed(self):
+        """Distilled and flow-matching models intentionally support zero CFG."""
+        req = ImageGenerationRequest(prompt="x", guidance_scale=0.0)
+        assert req.guidance_scale == 0.0
+
+    def test_negative_guidance_rejected(self):
+        """Verify that a negative guidance scale is rejected by the schema validator."""
         with pytest.raises(ValidationError):
-            ImageGenerationRequest(prompt="x", guidance_scale=0.0)
+            ImageGenerationRequest(prompt="x", guidance_scale=-0.1)
 
     def test_too_many_images_rejected(self):
         """Verify that requesting more images than the maximum allowed raises a ``ValidationError``."""

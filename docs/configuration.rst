@@ -14,6 +14,24 @@ OpenImageGen loads TOML configuration using this priority:
 If no configuration exists, a default file is created in the working directory.
 Loaded values are recursively merged with built-in defaults.
 
+In-app documentation
+--------------------
+
+Studio's **?** button opens the generated Sphinx site at ``/help/``; FastAPI's
+interactive OpenAPI reference remains at ``/docs``. Build the site before
+starting the server:
+
+.. code-block:: bash
+
+   python -m pip install -e ".[docs]"
+   python -m sphinx -W --keep-going -b html docs docs/_build/html
+
+For an installed or separately deployed documentation build, set
+``OPENIMAGEGEN_DOCS_DIR`` to the directory containing ``index.html``. If no
+build is found, ``/help/`` displays build instructions instead of failing
+silently. Studio's **Guide** button opens the interactive onboarding, which is
+shown automatically on a browser's first visit.
+
 Example
 -------
 
@@ -87,6 +105,13 @@ Hosted image APIs
 Only the environment variable's **name** is configured; its secret value remains
 outside TOML. Compatible services can use another base URL or an empty
 ``api_key_env`` when authentication is intentionally disabled.
+
+Administrators can also use **API** in Studio to add, edit, or delete hosted
+models without manually editing TOML. The form supports the provider model ID,
+base URL, credential environment-variable name, timeout, optional quality, and
+TLS verification. Changes take effect immediately and are persisted to the
+active configuration file. API key values are never accepted or displayed by
+this interface.
 
 Remote image providers
 ----------------------

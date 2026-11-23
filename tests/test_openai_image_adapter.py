@@ -3,9 +3,11 @@
 
 import base64
 import io
+import json
 import os
 from unittest.mock import MagicMock, patch
 
+import pytest
 from PIL import Image
 
 from openimagegen.models import get_registry
@@ -28,37 +30,50 @@ def test_remote_adapter_is_registered_and_has_no_downloads():
     progress.assert_called_once_with(100)
 
 
-@patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"})
-@patch("openimagegen.models.openai_image.requests.post")
-def test_remote_generation_decodes_base64_image(post):
-    response = MagicMock(status_code=200)
-    response.json.return_value = {
+@patch("openimagegen.models.openai_image.build_opener")
+def test_remote_generation_decodes_base64_image(build_opener):
+    response = MagicMock()
+    response.read.return_value = json.dumps({
         "data": [{"b64_json": base64.b64encode(_image_bytes()).decode()}]
-    }
-    post.return_value = response
-    pipeline = RemoteImagePipeline({"remote_model": "gpt-image-1", "quality": "high"})
-    images = OpenAIImageAdapter().generate(
-        pipeline=pipeline, prompt="a small observatory", width=1024, height=1024
+    }).encode()
+    response.__enter__.return_value = response
+    response.__exit__.return_value = False
+    opener = MagicMock()
+    opener.open.return_value = response
+    build_opener.return_value = opener
+
+    pipeline = RemoteImagePipeline(
+        model="gpt-image-1",
+        endpoint="https://api.openai.com/v1/images/generations",
+        api_key="test-key",
+        timeout_seconds=180,
+        verify_ssl=True,
     )
+    images = OpenAIImageAdapter().generate(
+        pipeline=pipeline,
+        prompt="a small observatory",
+        width=1024,
+        height=1024,
+    )
+
     assert len(images) == 1
     assert images[0].size == (8, 8)
-    payload = post.call_args.kwargs["json"]
-    assert payload == {
+    request = opener.open.call_args.args[0]
+    assert json.loads(request.data) == {
         "model": "gpt-image-1",
         "prompt": "a small observatory",
         "n": 1,
         "size": "1024x1024",
-        "quality": "high",
     }
+    assert request.get_header("Authorization") == "Bearer test-key"
 
 
 @patch.dict(os.environ, {}, clear=True)
 def test_missing_remote_credentials_fail_explicitly():
-    adapter = OpenAIImageAdapter()
-    pipeline = adapter.load_pipeline("openai/gpt-image-1", "./models", None, None)
-    try:
-        adapter.generate(pipeline=pipeline, prompt="test")
-    except ValueError as error:
-        assert "OPENAI_API_KEY" in str(error)
-    else:
-        raise AssertionError("Missing credentials were not rejected.")
+    with pytest.raises(ValueError, match="OPENAI_API_KEY"):
+        OpenAIImageAdapter().load_pipeline(
+            "openai/gpt-image-1",
+            "./models",
+            None,
+            None,
+        )
