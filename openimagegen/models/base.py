@@ -2,7 +2,7 @@
 @file        base.py
 @author      ParisNeo
 @description Base adapter class for pluggable diffusion models.
-             Defines the abstract interface for model loading, generation, and weight downloading.
+Defines the abstract interface for model loading, generation, and weight downloading.
 """
 
 from __future__ import annotations

@@ -122,6 +122,1351 @@ button { font-family: inherit; }
     gap: 12px;
 }
 
+.ui-icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15em; flex-shrink: 0; }
+.ui-icon-lg { width: 52px; height: 52px; }
+.template-btn, .surprise-btn, .mode-toggle-btn, .action-btn, .btn-mini { align-items: center; gap: 6px; }
+.template-btn, .surprise-btn, .mode-toggle-btn { display: inline-flex; justify-content: center; }
+.surprise-btn { display: flex; }
+
+.logo-mark {
+    width: 36px;
+    height: 36px;
+    background: var(--gradient-accent);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    box-shadow: 0 4px 14px var(--accent-glow);
+    flex-shrink: 0;
+}
+
+.logo h1 {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+}
+
+.logo-tag {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--accent);
+    margin-left: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.logo-sub {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    line-height: 1.2;
+    margin-top: 2px;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.api-key-input {
+    width: 160px;
+    padding: 7px 10px;
+    font-size: 11px;
+}
+
+.icon-button {
+    width: 34px;
+    height: 34px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.icon-button:hover {
+    background: var(--bg-elevated);
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+.status-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-tertiary);
+    flex-shrink: 0;
+}
+
+.status-pill.online { color: var(--success); border-color: rgba(16, 185, 129, 0.3); }
+.status-pill.online .status-dot {
+    background: var(--success);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.status-pill.offline { color: var(--error); border-color: rgba(239, 68, 68, 0.3); }
+.status-pill.offline .status-dot { background: var(--error); }
+
+.status-pill.connecting { color: var(--warning); }
+
+@keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2); }
+    50%      { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.05); }
+}
+
+.controls-panel {
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 20px 20px 32px;
+}
+
+@media (max-width: 980px) {
+    .controls-panel {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        max-height: 50vh;
+    }
+}
+
+.panel-section {
+    margin-bottom: 24px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.panel-section h2 {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    margin-bottom: 12px;
+}
+
+.form-group {
+    margin-bottom: 14px;
+}
+
+.form-group:last-child { margin-bottom: 0; }
+
+.form-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.form-label .hint {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    font-weight: 400;
+    text-transform: none;
+}
+
+input[type="text"],
+input[type="number"],
+textarea,
+select {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-family: inherit;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+    background: var(--bg-primary);
+}
+
+input::placeholder, textarea::placeholder {
+    color: var(--text-tertiary);
+}
+
+textarea {
+    resize: vertical;
+    min-height: 76px;
+    line-height: 1.5;
+}
+
+select {
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2310b981' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 16px;
+    padding-right: 36px;
+    appearance: none;
+}
+
+.slider-row {
+    display: grid;
+    grid-template-columns: 1fr 60px;
+    gap: 10px;
+    align-items: center;
+}
+
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    background: var(--bg-input);
+    border-radius: 3px;
+    outline: none;
+    border: 1px solid var(--border);
+    padding: 0;
+    cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 8px var(--accent-glow);
+    transition: transform 0.1s;
+}
+input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 0 8px var(--accent-glow);
+}
+
+input[type="range"].slider-mini { height: 4px; }
+input[type="range"].slider-mini::-webkit-slider-thumb { width: 14px; height: 14px; }
+input[type="range"].slider-mini::-moz-range-thumb     { width: 14px; height: 14px; }
+
+.preset-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.preset-btn {
+    padding: 5px 10px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.preset-btn:hover {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    border-color: var(--border-strong);
+}
+
+.preset-btn.active {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.dim-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.num-with-btns {
+    display: grid;
+    grid-template-columns: 1fr 32px 32px;
+    gap: 6px;
+    align-items: center;
+}
+
+.btn-mini {
+    height: 32px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.btn-mini:hover:not(:disabled) {
+    background: var(--bg-elevated);
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+.btn-mini:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.model-info {
+    margin-top: 8px;
+    padding: 10px 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    line-height: 1.5;
+    display: none;
+}
+
+.model-info.has-data { display: block; }
+
+.model-info-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 2px 0;
+}
+
+.model-info-label {
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 10px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.model-execution-hint {
+    margin-top: 9px;
+    padding-top: 9px;
+    border-top: 1px solid var(--border);
+    line-height: 1.45;
+}
+.model-execution-hint strong { color: var(--accent-secondary); }
+.model-execution-hint.offload strong { color: var(--warning); }
+.model-execution-hint.impossible strong { color: var(--error); }
+.model-execution-hint.cpu strong { color: var(--warning); }
+
+.model-info-name {
+    color: var(--text-secondary);
+    text-align: right;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 10.5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.generate-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--gradient-accent);
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+    box-shadow: 0 4px 14px var(--accent-glow);
+    margin-top: 24px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.generate-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px var(--accent-glow);
+}
+
+.generate-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.generate-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.generate-btn .spinner {
+    display: none;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+.generate-btn.loading .spinner { display: block; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.kbd-hint {
+    margin-top: 10px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-tertiary);
+}
+
+kbd {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-family: ui-monospace, monospace;
+    font-size: 10px;
+    color: var(--text-secondary);
+}
+
+.content-area {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.preview-wrapper {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.preview-stage {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    min-height: 320px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.placeholder {
+    text-align: center;
+    color: var(--text-tertiary);
+    padding: 40px 24px;
+    max-width: 340px;
+}
+
+.placeholder-icon {
+    font-size: 56px;
+    margin-bottom: 14px;
+    opacity: 0.35;
+}
+
+.placeholder h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.placeholder p {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    line-height: 1.5;
+}
+
+.placeholder.error .placeholder-icon { color: var(--error); opacity: 0.7; }
+
+.retry-btn {
+    margin-top: 18px;
+    padding: 8px 16px;
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.retry-btn:hover { background: var(--accent); color: white; }
+
+.preview-image {
+    max-width: 100%;
+    max-height: 65vh;
+    display: block;
+    border-radius: 8px;
+}
+
+.preview-overlay {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    gap: 6px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.preview-stage:hover .preview-overlay { opacity: 1; }
+
+.action-btn {
+    padding: 7px 12px;
+    background: rgba(10, 12, 16, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--border-strong);
+    border-radius: 7px;
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: background 0.2s, color 0.2s;
+}
+
+.action-btn:hover { background: var(--accent); color: white; border-color: var(--accent); }
+
+.image-meta {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 14px 18px;
+    background: linear-gradient(to top, rgba(10, 12, 16, 0.95), transparent);
+    font-size: 11px;
+    color: var(--text-tertiary);
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+}
+
+.preview-stage.has-image:hover .image-meta { opacity: 1; }
+
+.image-meta-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.image-meta-row span span { color: var(--text-secondary); }
+
+.progress-container {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 16px 20px 20px;
+    background: linear-gradient(to top, rgba(10, 12, 16, 0.98) 60%, transparent);
+}
+
+.progress-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.progress-percent {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 6px;
+    background: var(--bg-tertiary);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--gradient-accent);
+    transition: width 0.4s ease;
+    border-radius: 3px;
+    box-shadow: 0 0 8px var(--accent-glow);
+}
+
+.batch-carousel {
+    display: flex;
+    gap: 12px;
+    padding: 12px;
+    max-width: 100%;
+    overflow-x: auto;
+    align-items: center;
+}
+
+.batch-image {
+    max-height: 60vh;
+    max-width: 100%;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.15s;
+}
+
+.batch-image:hover { transform: scale(1.02); }
+
+.batch-thumbs {
+    display: flex;
+    gap: 8px;
+    padding: 0 12px 12px;
+    overflow-x: auto;
+}
+
+.batch-thumb {
+    width: 64px;
+    height: 64px;
+    border-radius: 6px;
+    object-fit: cover;
+    cursor: pointer;
+    opacity: 0.6;
+    border: 2px solid transparent;
+    transition: all 0.15s;
+    flex-shrink: 0;
+}
+
+.batch-thumb:hover { opacity: 0.9; }
+.batch-thumb.active { opacity: 1; border-color: var(--accent); }
+
+.gallery-section h2 {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.gallery-clear {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-tertiary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-transform: none;
+    letter-spacing: 0;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.gallery-clear:hover {
+    color: var(--error);
+    background: var(--bg-tertiary);
+}
+
+.gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+}
+
+.gallery-item {
+    position: relative;
+    aspect-ratio: 1;
+    background: var(--bg-tertiary);
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: border-color 0.2s, transform 0.2s;
+}
+
+.gallery-item:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+}
+
+.gallery-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.gallery-item-overlay {
+    position: absolute;
+    inset: 0;
+    padding: 10px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.92) 50%, transparent);
+    opacity: 0;
+    transition: opacity 0.15s;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+}
+
+.gallery-item:hover .gallery-item-overlay { opacity: 1; }
+
+.gallery-item-prompt {
+    font-size: 11px;
+    color: var(--text-primary);
+    font-weight: 500;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.gallery-item-meta {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    margin-top: 4px;
+}
+
+.gallery-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-tertiary);
+    font-size: 13px;
+    background: var(--bg-secondary);
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+}
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    padding: 24px;
+}
+
+.modal {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    max-width: 520px;
+    width: 100%;
+    max-height: 85vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow-lg);
+    animation: modalIn 0.2s ease;
+}
+
+@keyframes modalIn {
+    from { opacity: 0; transform: scale(0.96); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.modal-header h2 {
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 18px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.modal-close:hover {
+    background: var(--bg-tertiary);
+    color: var(--error);
+}
+
+.modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+}
+
+.info-row:last-child { border-bottom: none; }
+
+.info-row > span:first-child {
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
+}
+
+.info-row > span:last-child {
+    color: var(--text-primary);
+    text-align: right;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.info-row .path {
+    font-size: 11px;
+    max-width: 320px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.info-section {
+    margin-top: 18px;
+    margin-bottom: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+}
+
+.info-list {
+    list-style: none;
+    padding: 0;
+}
+
+.info-list li {
+    padding: 6px 0;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.info-list code {
+    background: var(--bg-tertiary);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    color: var(--accent);
+}
+
+.toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 8px;
+    z-index: 300;
+    pointer-events: none;
+    max-width: calc(100vw - 48px);
+}
+
+.toast {
+    padding: 12px 16px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-strong);
+    border-radius: 9px;
+    color: var(--text-primary);
+    font-size: 13px;
+    box-shadow: var(--shadow-lg);
+    animation: toastIn 0.25s ease;
+    pointer-events: auto;
+    max-width: 360px;
+    border-left-width: 3px;
+}
+
+.toast.success { border-left-color: var(--success); }
+.toast.error   { border-left-color: var(--error); }
+.toast.info    { border-left-color: var(--accent); }
+.toast.warning { border-left-color: var(--warning); }
+
+.toast.removing {
+    animation: toastOut 0.25s ease forwards;
+}
+
+@keyframes toastIn {
+    from { opacity: 0; transform: translateX(120%); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes toastOut {
+    from { opacity: 1; transform: translateX(0); }
+    to   { opacity: 0; transform: translateX(120%); }
+}
+
+:root[data-theme="aurora-light"] {
+    --bg-primary: #f4f6f9;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #eef1f6;
+    --bg-elevated: #e2e8f0;
+    --bg-input: #ffffff;
+    --border: #d8dee7;
+    --border-strong: #b0b8c4;
+    --text-primary: #1a1f27;
+    --text-secondary: #4a5568;
+    --text-tertiary: #8b95a5;
+    --accent: #059669;
+    --accent-hover: #047857;
+    --accent-soft: rgba(5, 150, 105, 0.10);
+    --accent-glow: rgba(5, 150, 105, 0.2);
+    --accent-secondary: #0891b2;
+    --success: #059669;
+    --warning: #d97706;
+    --error: #dc2626;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.12);
+    --gradient-accent: linear-gradient(135deg, #059669 0%, #0891b2 100%);
+    --gradient-bg: radial-gradient(circle at 0% 0%, rgba(5, 150, 105, 0.03) 0%, transparent 50%),
+                   radial-gradient(circle at 100% 100%, rgba(8, 145, 178, 0.03) 0%, transparent 50%);
+}
+
+body, .app-header, .controls-panel, .panel-section, .preview-stage,
+.modal, .toast, .icon-button, .status-pill, input, textarea, select,
+.preset-btn, .btn-mini, .gallery-item, .template-btn {
+    transition: background-color 0.3s ease, border-color 0.3s ease,
+                color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.bg-orbs {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+}
+.bg-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.15;
+    animation: orbFloat 25s ease-in-out infinite;
+}
+.bg-orb:nth-child(1) { width: 420px; height: 420px; background: var(--accent); top: -120px; left: -120px; }
+.bg-orb:nth-child(2) { width: 360px; height: 360px; background: var(--accent-secondary); bottom: -120px; right: -120px; animation-delay: -8s; }
+.bg-orb:nth-child(3) { width: 300px; height: 300px; background: var(--accent); top: 40%; left: 55%; animation-delay: -16s; opacity: 0.08; }
+
+@keyframes orbFloat {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(40px, -60px) scale(1.08); }
+    66% { transform: translate(-30px, 40px) scale(0.94); }
+}
+
+:root[data-theme="aurora-dark"] .icon-moon { display: block; }
+:root[data-theme="aurora-dark"] .icon-sun  { display: none; }
+:root[data-theme="aurora-light"] .icon-moon { display: none; }
+:root[data-theme="aurora-light"] .icon-sun  { display: block; }
+
+.templates-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.template-btn {
+    padding: 6px 10px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+.template-btn:hover {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+.surprise-btn {
+    width: 100%;
+    padding: 8px;
+    margin-top: 10px;
+    background: var(--bg-input);
+    border: 1px dashed var(--border-strong);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.surprise-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    border-style: solid;
+}
+
+.gallery-toolbar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+    align-items: center;
+}
+.gallery-search-wrap {
+    flex: 1;
+    position: relative;
+}
+.gallery-search-wrap svg {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-tertiary);
+    pointer-events: none;
+}
+.gallery-search {
+    width: 100%;
+    padding: 8px 12px 8px 34px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 12px;
+    font-family: inherit;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.gallery-search:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.gallery-search::placeholder { color: var(--text-tertiary); }
+.gallery-stats {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    font-weight: 600;
+    white-space: nowrap;
+    padding: 4px 10px;
+    background: var(--bg-tertiary);
+    border-radius: 999px;
+}
+
+.lightbox-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 250;
+    padding: 48px;
+}
+.lightbox-overlay.active { display: flex; }
+.lightbox-image {
+    max-width: 90vw;
+    max-height: 85vh;
+    border-radius: 8px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    user-select: none;
+}
+.lightbox-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 48px;
+    height: 48px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    transition: background 0.2s;
+}
+.lightbox-nav:hover { background: rgba(255, 255, 255, 0.2); }
+.lightbox-nav.prev { left: 24px; }
+.lightbox-nav.next { right: 24px; }
+.lightbox-close {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+.lightbox-close:hover { background: rgba(239, 68, 68, 0.5); }
+.lightbox-counter {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 13px;
+    font-weight: 500;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 6px 16px;
+    border-radius: 999px;
+}
+
+.shortcut-list { display: grid; gap: 2px; }
+.shortcut-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+}
+.shortcut-item:last-child { border-bottom: none; }
+.shortcut-item .shortcut-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+.shortcut-keys { display: flex; gap: 4px; align-items: center; }
+
+.ctx-menu {
+    position: fixed;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg);
+    padding: 4px;
+    z-index: 400;
+    min-width: 170px;
+    display: none;
+    animation: ctxIn 0.15s ease;
+}
+.ctx-menu.active { display: block; }
+@keyframes ctxIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to   { opacity: 1; transform: scale(1); }
+}
+.ctx-menu-item {
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.ctx-menu-item:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+.ctx-menu-item.danger:hover { color: var(--error); }
+.ctx-menu-separator {
+    height: 1px;
+    background: var(--border);
+    margin: 4px 0;
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb {
+    background: var(--bg-tertiary);
+    border-radius: 5px;
+    border: 2px solid var(--bg-primary);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--bg-elevated); }
+
+@media (max-width: 640px) {
+    .app-header { padding: 10px 16px; }
+    .preview-wrapper { padding: 16px; gap: 16px; }
+    .controls-panel { padding: 16px; }
+    .gallery-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+}
+
+.mode-toggle {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 3px;
+}
+.mode-toggle-btn {
+    flex: 1;
+    padding: 8px;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.mode-toggle-btn:hover { color: var(--text-primary); }
+.mode-toggle-btn.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border: 1px solid var(--accent);
+}
+
+.upload-zone {
+    border: 2px dashed var(--border-strong);
+    border-radius: 10px;
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+}
+.upload-zone:hover { border-color: var(--accent); background: var(--accent-soft); }
+.upload-zone.dragover { border-color: var(--accent); background: var(--accent-soft); transform: scale(1.01); }
+.upload-zone.has-image { padding: 8px; border-style: solid; }
+.upload-zone img { max-width: 100%; max-height: 180px; border-radius: 8px; display: block; margin: 0 auto; }
+.upload-placeholder { color: var(--text-tertiary); }
+.upload-placeholder span { font-size: 32px; display: block; margin-bottom: 8px; }
+.upload-placeholder p { font-size: 12px; }
+.upload-clear {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-strong);
+    border-radius: 50%;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+.upload-clear:hover { background: var(--error); color: white; border-color: var(--error); }
+
+.gallery-fav-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    background: rgba(0, 0, 0, 0.6);
+    border: none;
+    border-radius: 50%;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    opacity: 0;
+    transition: all 0.2s;
+    z-index: 2;
+}
+.gallery-item:hover .gallery-fav-btn { opacity: 1; }
+.gallery-fav-btn.favorited { color: var(--warning); opacity: 1; }
+.gallery-fav-btn:hover { transform: scale(1.15); }
+.fav-filter {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+.fav-filter.active { color: var(--warning); border-color: var(--warning); background: rgba(245, 158, 11, 0.1); }
+.fav-filter:hover { border-color: var(--border-strong); }
+.ui-icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15em; flex-shrink: 0; }
+.logo-mark {
+    width: 36px;
+    height: 36px;
+    background: var(--gradient-accent);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    box-shadow: 0 4px 14px var(--accent-glow);
+    flex-shrink: 0;
+}
+.ui-icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15em; flex-shrink: 0; }
+.ui-icon-lg { width: 52px; height: 52px; }
+.template-btn, .surprise-btn, .mode-toggle-btn, .action-btn { align-items: center; gap: 6px; }
+.template-btn, .surprise-btn, .mode-toggle-btn { display: inline-flex; justify-content: center; }
+.surprise-btn { display: flex; }
+
 .logo-mark {
     width: 36px;
     height: 36px;
@@ -1556,7 +2901,8 @@ body, .app-header, .controls-panel, .panel-section, .preview-stage,
 
 <header class="app-header">
     <div class="logo">
-        <div class="logo-mark">✨</div>
+        <div class="logo-mark"><svg class="ui-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/><path d="m19 16 .8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8L19 16Z"/></svg></div>
+        <div class="logo-mark"><svg class="ui-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/><path d="m19 16 .8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8L19 16Z"/></svg></div>
         <div>
             <h1>OpenImageGen<span class="logo-tag">Studio</span></h1>
             <div class="logo-sub" id="logoSub">Connecting...</div>
@@ -1621,14 +2967,14 @@ body, .app-header, .controls-panel, .panel-section, .preview-stage,
             <section class="panel-section">
                 <h2>Prompt</h2>
                 <div class="mode-toggle" id="modeToggle">
-                    <button type="button" class="mode-toggle-btn active" data-mode="text2img">✏️ Text → Image</button>
-                    <button type="button" class="mode-toggle-btn" data-mode="img2img">🖼️ Image → Image</button>
+                    <button type="button" class="mode-toggle-btn active" data-mode="text2img"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 5 4 4M4 20l4-1 11-11a2.8 2.8 0 0 0-4-4L4 15v5Z"/></svg> Text → Image</button>
+                    <button type="button" class="mode-toggle-btn" data-mode="img2img"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg> Image → Image</button>
                 </div>
                 <div class="form-group" id="uploadGroup" style="display:none;">
                     <div class="upload-zone" id="uploadZone">
                         <input type="file" id="initImageInput" accept="image/*" style="display:none;">
                         <div class="upload-placeholder" id="uploadPlaceholder">
-                            <span>📁</span>
+                            <svg class="ui-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 7V5a2 2 0 0 1 2-2h4l2 3h8a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/></svg>
                             <p>Click or drag an image here</p>
                         </div>
                         <img id="uploadPreview" style="display:none;" alt="Init image preview">
@@ -1654,7 +3000,7 @@ body, .app-header, .controls-panel, .panel-section, .preview-stage,
             <section class="panel-section">
                 <h2>Templates</h2>
                 <div class="templates-row" id="templatesRow"></div>
-                <button type="button" class="surprise-btn" id="surpriseBtn">🎲 Surprise me</button>
+                <button type="button" class="surprise-btn" id="surpriseBtn"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1" fill="currentColor"/><circle cx="16" cy="8" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="8" cy="16" r="1" fill="currentColor"/><circle cx="16" cy="16" r="1" fill="currentColor"/></svg> Surprise me</button>
             </section>
 
             <section class="panel-section">
@@ -1693,6 +3039,33 @@ body, .app-header, .controls-panel, .panel-section, .preview-stage,
                 <h2>Generation</h2>
 
                 <div class="form-group">
+                    <label class="form-label" for="qualityPreset">
+                        <span>Quality profile</span>
+                        <span class="hint">Model-aware settings</span>
+                    </label>
+                    <select id="qualityPreset">
+                        <option value="draft">Draft · fastest</option>
+                        <option value="recommended" selected>Recommended · balanced</option>
+                        <option value="quality">Quality · slower</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="sampler">Sampler</label>
+                    <select id="sampler">
+                        <option value="dpmpp_2m_karras">DPM++ 2M Karras · balanced</option>
+                        <option value="dpmpp_2m_sde_karras">DPM++ 2M SDE Karras · quality</option>
+                        <option value="dpmpp_2m">DPM++ 2M</option>
+                        <option value="dpmpp_sde_karras">DPM++ SDE Karras</option>
+                        <option value="unipc">UniPC · fast at low steps</option>
+                        <option value="flowmatch_euler">FlowMatch Euler · FLUX / SD3 / Qwen</option>
+                        <option value="euler_a">Euler Ancestral · Turbo</option>
+                        <option value="euler">Euler</option>
+                        <option value="ddim">DDIM</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
                     <label class="form-label" for="steps">
                         <span>Steps</span>
                         <span class="hint">Denoising iterations</span>
@@ -1709,7 +3082,7 @@ body, .app-header, .controls-panel, .panel-section, .preview-stage,
                         <span class="hint">Prompt adherence</span>
                     </label>
                     <div class="slider-row">
-                        <input type="range" id="guidanceSlider" min="1" max="20" step="0.5" value="7.5" class="slider-mini">
+                        <input type="range" id="guidanceSlider" min="0" max="20" step="0.5" value="7.5" class="slider-mini">
                         <input type="number" id="guidance_scale" min="0" max="30" step="0.5" value="7.5">
                     </div>
                 </div>
@@ -1740,8 +3113,8 @@ body, .app-header, .controls-panel, .panel-section, .preview-stage,
                     </label>
                     <div class="num-with-btns">
                         <input type="number" id="seed" value="-1">
-                        <button type="button" class="btn-mini" id="randomSeed" title="Random seed" aria-label="Random seed">🎲</button>
-                        <button type="button" class="btn-mini" id="useLastSeed" title="Use seed from last generation" aria-label="Use seed from last generation" disabled>♻️</button>
+                        <button type="button" class="btn-mini" id="randomSeed" title="Random seed" aria-label="Random seed"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1"/><circle cx="16" cy="16" r="1"/><circle cx="12" cy="12" r="1"/></svg></button>
+                        <button type="button" class="btn-mini" id="useLastSeed" title="Use seed from last generation" aria-label="Use seed from last generation" disabled><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M6.1 8a7 7 0 0 1 11.5-1L20 12M4 12l2.4 5a7 7 0 0 0 11.5-1"/></svg></button>
                     </div>
                 </div>
             </section>
@@ -1762,7 +3135,7 @@ body, .app-header, .controls-panel, .panel-section, .preview-stage,
 
             <div class="preview-stage" id="previewStage">
                 <div class="placeholder" id="placeholder">
-                    <div class="placeholder-icon">🎨</div>
+                    <div class="placeholder-icon"><svg class="ui-icon ui-icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3a9 9 0 0 0 0 18h1.5a2 2 0 0 0 0-4H12a2 2 0 0 1 0-4h4a5 5 0 0 0 5-5c0-3-4-5-9-5Z"/><circle cx="7.5" cy="10" r="1"/><circle cx="10" cy="6.5" r="1"/><circle cx="15" cy="7" r="1"/></svg></div>
                     <h3>Ready to create</h3>
                     <p>Enter a prompt and click <strong>Generate</strong> to start. Your image will appear here.</p>
                 </div>
@@ -1781,16 +3154,16 @@ body, .app-header, .controls-panel, .panel-section, .preview-stage,
 
                 <div class="preview-overlay" id="previewOverlay" style="display:none;">
                     <button class="action-btn" id="downloadBtn" title="Download">
-                        <span>⬇</span><span>Download</span>
+                        <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m-5-5 5 5 5-5M5 21h14"/></svg><span>Download</span>
                     </button>
                     <button class="action-btn" id="copySeedBtn" title="Copy seed">
-                        <span>🎯</span><span>Seed</span>
+                        <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg><span>Seed</span>
                     </button>
                     <button class="action-btn" id="openImageBtn" title="Open full size">
-                        <span>⤢</span><span>Open</span>
+                        <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3M21 14v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h6"/></svg><span>Open</span>
                     </button>
                     <button class="action-btn" id="downloadAllBtn" title="Download all images" style="display:none;">
-                        <span>⬇</span><span>All</span>
+                        <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m-5-5 5 5 5-5M5 21h14"/></svg><span>All</span>
                     </button>
                 </div>
 
@@ -1813,7 +3186,7 @@ body, .app-header, .controls-panel, .panel-section, .preview-stage,
                         </svg>
                         <input type="text" class="gallery-search" id="gallerySearch" placeholder="Search prompts...">
                     </div>
-                    <button class="fav-filter" id="favFilter" title="Show favorites only">⭐ <span id="favCount">0</span></button>
+                    <button class="fav-filter" id="favFilter" title="Show favorites only"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z"/></svg> <span id="favCount">0</span></button>
                     <span class="gallery-stats" id="galleryStats"></span>
                 </div>
                 <div class="gallery-grid" id="galleryGrid">
@@ -1902,11 +3275,11 @@ body, .app-header, .controls-panel, .panel-section, .preview-stage,
 </div>
 
 <div class="ctx-menu" id="ctxMenu">
-    <div class="ctx-menu-item" id="ctxView">👁️ View</div>
-    <div class="ctx-menu-item" id="ctxReuse">♻️ Reuse settings</div>
-    <div class="ctx-menu-item" id="ctxCopyPrompt">📋 Copy prompt</div>
+    <div class="ctx-menu-item" id="ctxView">View</div>
+    <div class="ctx-menu-item" id="ctxReuse">Reuse settings</div>
+    <div class="ctx-menu-item" id="ctxCopyPrompt">Copy prompt</div>
     <div class="ctx-menu-separator"></div>
-    <div class="ctx-menu-item danger" id="ctxDelete">🗑️ Delete</div>
+    <div class="ctx-menu-item danger" id="ctxDelete">Delete</div>
 </div>
 
 <div class="toast-container" id="toastContainer" aria-live="polite"></div>
@@ -1926,56 +3299,29 @@ const THEME_KEY           = 'oig_theme_v1';
 const FAVORITES_KEY       = 'oig_favorites_v1';
 const MAX_HISTORY_ITEMS   = 24;
 
-const PROMPT_TEMPLATES = [
-    {
-        icon: '📸', name: 'Portrait',
-        prompt: 'A photorealistic portrait of a woman, studio lighting, soft bokeh background, 85mm lens, ultra detailed skin texture, natural colors',
-        negative: 'deformed, blurry, bad anatomy, low quality, cartoon, anime',
-        steps: 40, guidance: 7.5, width: 768, height: 768
-    },
-    {
-        icon: '🌄', name: 'Landscape',
-        prompt: 'Breathtaking mountain landscape at golden hour, dramatic clouds, alpine lake reflection, ultra wide angle, photorealistic, 8k',
-        negative: 'people, text, watermark, low quality, flat lighting',
-        steps: 50, guidance: 7.0, width: 1024, height: 576
-    },
-    {
-        icon: '🎨', name: 'Digital Art',
-        prompt: 'Digital painting of a mystical forest creature, vibrant colors, intricate details, concept art style, trending on artstation, dramatic lighting',
-        negative: 'blurry, low quality, JPEG artifacts, amateur',
-        steps: 45, guidance: 8.0, width: 1024, height: 1024
-    },
-    {
-        icon: '🔮', name: 'Cyberpunk',
-        prompt: 'Cyberpunk city street at night, neon lights, rainy reflections, futuristic architecture, blade runner aesthetic, ultra detailed, cinematic',
-        negative: 'rural, natural lighting, daytime, low quality',
-        steps: 50, guidance: 7.5, width: 1024, height: 576
-    },
-    {
-        icon: '🌸', name: 'Anime',
-        prompt: 'Anime style illustration of a girl with cherry blossoms, cel shaded, vibrant colors, studio ghibli inspired, detailed background, key visual',
-        negative: 'photorealistic, 3D render, western cartoon, deformed',
-        steps: 35, guidance: 7.0, width: 768, height: 1024
-    },
-    {
-        icon: '🎭', name: 'Fantasy',
-        prompt: 'Epic fantasy castle on a floating island, magical atmosphere, glowing particles, waterfalls, digital painting, dramatic lighting, ultra detailed',
-        negative: 'modern, urban, sci-fi, low quality, simple',
-        steps: 50, guidance: 8.0, width: 832, height: 1216
-    },
-    {
-        icon: '🏗️', name: 'Architecture',
-        prompt: 'Modern minimalist villa with infinity pool, glass walls, sunset reflections, architectural visualization, photorealistic render, 8k',
-        negative: 'people, clutter, low quality, cartoon',
-        steps: 45, guidance: 7.0, width: 1024, height: 768
-    },
-    {
-        icon: '🦄', name: 'Surreal',
-        prompt: 'Surreal dreamscape with floating islands and giant mushrooms, impossible geometry, soft pastel colors, ethereal atmosphere, highly detailed',
-        negative: 'realistic, ordinary, mundane, low quality',
-        steps: 50, guidance: 9.0, width: 1024, height: 1024
-    }
+const TEMPLATE_ICONS = {
+    camera: '<circle cx="12" cy="13" r="4"/><path d="M4 7h3l2-3h6l2 3h3v13H4V7Z"/>',
+    landscape: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8" cy="8" r="1.5"/><path d="m21 15-5-5L5 21"/>',
+    palette: '<path d="M12 3a9 9 0 0 0 0 18h1.5a2 2 0 0 0 0-4H12a2 2 0 0 1 0-4h4a5 5 0 0 0 5-5c0-3-4-5-9-5Z"/><circle cx="8" cy="9" r="1"/>',
+    city: '<path d="M3 21V8l6-4v17M9 12h6v9M15 5h6v16M6 10h.01M6 14h.01M12 15h.01M18 9h.01M18 13h.01M2 21h20"/>',
+    flower: '<circle cx="12" cy="12" r="2"/><path d="M12 10c-5-8 5-8 0 0Zm2 2c8-5 8 5 0 0Zm-2 2c5 8-5 8 0 0Zm-2-2c-8 5-8-5 0 0Z"/>',
+    sparkles: '<path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Zm7 12 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z"/>',
+    building: '<path d="M4 21V3h12v18M16 9h4v12M8 7h4M8 11h4M8 15h4M2 21h20"/>',
+    cloud: '<path d="M7 18a5 5 0 0 1-1-9.9A7 7 0 0 1 20 11a4 4 0 0 1-1 7H7Z"/>'
+};
+
+function templateIcon(name) {
+    return `<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${TEMPLATE_ICONS[name] || TEMPLATE_ICONS.sparkles}</svg>`;
+}
+
+const PROMPT_TEMPLATE_FALLBACKS = [
+    { name: "Cinematic", prompt: "cinematic film still, dramatic lighting, shallow depth of field, 35mm, high detail", negative: "lowres, blurry, watermark, text" },
+    { name: "Anime", prompt: "anime style, clean line art, vibrant colors, detailed background, studio quality", negative: "lowres, blurry, extra limbs, watermark" },
+    { name: "Photoreal", prompt: "ultra realistic photo, natural lighting, sharp focus, detailed skin texture, 85mm lens", negative: "cgi, illustration, painting, blurry, watermark" },
+    { name: "Fantasy", prompt: "epic fantasy concept art, intricate details, atmospheric lighting, rich colors, highly detailed", negative: "lowres, blurry, text, watermark" }
 ];
+
+let PROMPT_TEMPLATES = [...PROMPT_TEMPLATE_FALLBACKS];
 
 // ============================================================================
 // State
@@ -2005,6 +3351,7 @@ const state = {
 const els = {};
 
 function cacheDom() {
+    els.btnLabel = els.generateBtn?.querySelector('.btn-label') || null;
     [
         'statusPill', 'statusText', 'logoSub',
         'genForm', 'prompt', 'promptCount', 'negative_prompt',
@@ -2013,10 +3360,10 @@ function cacheDom() {
         'uploadPlaceholder', 'uploadPreview', 'uploadClear',
         'width', 'height', 'dimensionPresets',
         'steps', 'stepsSlider', 'guidance_scale', 'guidanceSlider',
-        'num_images_per_prompt', 'seed',
+        'qualityPreset', 'sampler', 'num_images_per_prompt', 'seed',
         'strengthGroup', 'strength', 'strengthSlider',
         'randomSeed', 'useLastSeed',
-        'generateBtn', 'btnLabel',
+        'generateBtn',
         'previewStage', 'placeholder',
         'progressContainer', 'progressLabel', 'progressPercent', 'progressFill',
         'previewImage', 'previewOverlay', 'imageMeta',
@@ -2061,6 +3408,12 @@ function showToast(message, type = 'info', duration = 4000) {
         toast.classList.add('removing');
         setTimeout(() => toast.remove(), 250);
     }, duration);
+}
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, character => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[character]);
 }
 
 function truncate(str, max = 60) {
@@ -2177,6 +3530,18 @@ async function checkHealth() {
     }
 }
 
+async function loadGenerationTemplates() {
+    try {
+        const data = await apiGet('/v1/generation/templates');
+        if (Array.isArray(data.templates) && data.templates.length) {
+            PROMPT_TEMPLATES = data.templates.map(template => ({ ...template, name: template.name }));
+            renderTemplates();
+        }
+    } catch {
+        // Bundled prompt ideas remain available if the template route is unavailable.
+    }
+}
+
 async function loadModels() {
     try {
         const data = await apiGet('/models');
@@ -2250,11 +3615,11 @@ function populateModelSelect() {
         opt.value = m.key;
         let statusLabel = '';
         if (m.loaded) {
-            statusLabel = ' · ✅ Loaded';
+            statusLabel = ' · Loaded';
         } else if (m.downloaded) {
-            statusLabel = ' · 💾 Ready';
+            statusLabel = ' · Ready';
         } else {
-            statusLabel = ' · ⬇️ Not downloaded';
+            statusLabel = ' · Not downloaded';
         }
         opt.textContent = `${m.key} (${m.type})${statusLabel}`;
         opt.dataset.type = m.type;
@@ -2288,17 +3653,23 @@ function updateModelInfo() {
     const supportsI2I = modelData?.supports_img2img;
     const isLoaded = modelData?.loaded;
     const isDownloaded = modelData?.downloaded;
+    const hint = modelData?.execution_hint;
+    const executionHint = hint ? `
+        <div class="model-execution-hint ${escapeHtml(hint.status)}">
+            <strong>${escapeHtml(hint.label)}</strong> — ${escapeHtml(hint.detail)}
+        </div>
+    ` : '';
 
     let statusBadge = '';
     let actionButton = '';
     if (isLoaded) {
-        statusBadge = '<span style="color:var(--success)">✅ Loaded in memory</span>';
+        statusBadge = '<span style="color:var(--success)">Loaded in memory</span>';
     } else if (isDownloaded) {
-        statusBadge = '<span style="color:var(--accent-secondary)">💾 Downloaded · Load on demand</span>';
+        statusBadge = '<span style="color:var(--accent-secondary)">Downloaded · Load on demand</span>';
         actionButton = `<button type="button" class="model-action-btn" onclick="loadModel('${opt.value}')">Load into memory</button>`;
     } else {
-        statusBadge = '<span style="color:var(--warning)">⬇️ Not downloaded</span>';
-        actionButton = `<button type="button" class="model-action-btn" onclick="downloadModel('${opt.value}')">⬇ Download model</button>`;
+        statusBadge = '<span style="color:var(--warning)">Not downloaded</span>';
+        actionButton = `<button type="button" class="model-action-btn" onclick="downloadModel('${opt.value}')">Download model</button>`;
     }
 
     els.modelInfo.innerHTML = `
@@ -2312,12 +3683,13 @@ function updateModelInfo() {
         </div>
         <div class="model-info-row">
             <span class="model-info-label">Img2Img</span>
-            <span>${supportsI2I ? '✅ Supported' : '❌ Not supported'}</span>
+            <span>${supportsI2I ? 'Supported' : 'Not supported'}</span>
         </div>
         <div class="model-info-row">
             <span class="model-info-label">Status</span>
             <span>${statusBadge}</span>
         </div>
+        ${executionHint}
         ${actionButton}
     `;
 }
@@ -2346,6 +3718,7 @@ function gatherFormData() {
 
     const cfg = parseFloat(els.guidance_scale.value);
     if (Number.isFinite(cfg) && cfg >= 0) data.guidance_scale = cfg;
+    if (els.sampler.value && !els.sampler.disabled) data.sampler = els.sampler.value;
 
     const n = parseInt(els.num_images_per_prompt.value, 10);
     if (n && n > 1) data.num_images_per_prompt = n;
@@ -2375,6 +3748,8 @@ function saveCurrentSettings() {
         height: els.height.value,
         steps: els.steps.value,
         guidance_scale: els.guidance_scale.value,
+        quality_preset: els.qualityPreset.value,
+        sampler: els.sampler.value,
         num_images_per_prompt: els.num_images_per_prompt.value,
         seed: els.seed.value,
         generationMode: state.generationMode,
@@ -2400,10 +3775,12 @@ function applySettingsToForm() {
         els.steps.value = s.steps;
         els.stepsSlider.value = Math.min(100, parseInt(s.steps, 10) || 30);
     }
-    if (s.guidance_scale) {
+    if (s.guidance_scale !== undefined && s.guidance_scale !== '') {
         els.guidance_scale.value = s.guidance_scale;
-        els.guidanceSlider.value = Math.min(20, parseFloat(s.guidance_scale) || 7.5);
+        els.guidanceSlider.value = Math.min(20, parseFloat(s.guidance_scale) || 0);
     }
+    if (s.quality_preset) els.qualityPreset.value = s.quality_preset;
+    if (s.sampler) els.sampler.value = s.sampler;
     if (s.num_images_per_prompt)            els.num_images_per_prompt.value = s.num_images_per_prompt;
     if (s.seed !== undefined && s.seed !== null && s.seed !== '') els.seed.value = s.seed;
     updatePromptCount();
@@ -2416,10 +3793,32 @@ function applySettingsToModels() {
     }
 }
 
+function applyStudioGenerationDefaults(profileName = 'recommended') {
+    const model = state.models.find(item => item.key === els.model_name.value);
+    if (!model) return;
+    const profile = model.generation_profiles?.[profileName] || model.generation_defaults;
+    if (!profile) return;
+    els.qualityPreset.value = profileName;
+    ['width', 'height', 'num_inference_steps', 'guidance_scale'].forEach(key => {
+        if (profile[key] !== undefined && els[key]) els[key].value = profile[key];
+    });
+    els.stepsSlider.value = Math.min(100, Number(profile.num_inference_steps) || 30);
+    els.guidanceSlider.value = Math.min(20, Number(profile.guidance_scale) || 0);
+    els.sampler.disabled = model.type === 'openai_image';
+    if (profile.sampler) els.sampler.value = profile.sampler;
+    els.dimensionPresets.querySelectorAll('.preset-btn').forEach(button => {
+        button.classList.toggle('active', Number(button.dataset.w) === Number(profile.width)
+            && Number(button.dataset.h) === Number(profile.height));
+    });
+    saveCurrentSettings();
+}
+
 function setGenerating(isGen) {
     els.generateBtn.disabled = isGen;
     els.generateBtn.classList.toggle('loading', isGen);
-    els.btnLabel.textContent = isGen ? 'Generating…' : 'Generate';
+    if (els.btnLabel) {
+        els.btnLabel.textContent = isGen ? 'Generating…' : 'Generate';
+    }
 }
 
 function setStage(stage, message = '') {
@@ -2448,7 +3847,7 @@ function setStage(stage, message = '') {
     } else if (stage === 'failed') {
         els.placeholder.classList.add('error');
         els.placeholder.innerHTML = `
-            <div class="placeholder-icon">⚠️</div>
+            <div class="placeholder-icon"><svg class="ui-icon ui-icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.3 3.7 2.5 18a2 2 0 0 0 1.8 3h15.4a2 2 0 0 0 1.8-3L13.7 3.7a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4m0 4h.01"/></svg></div>
             <h3>Generation failed</h3>
             <p>${message || 'Unknown error'}</p>
             <button class="retry-btn" id="retryBtn">Retry</button>
@@ -2498,7 +3897,8 @@ function showResult(job) {
     if (rd.model_name) metaParts.push(`<span>Model: <span>${rd.model_name}</span></span>`);
     if (rd.width && rd.height) metaParts.push(`<span>Size: <span>${rd.width}×${rd.height}</span></span>`);
     if (rd.num_inference_steps) metaParts.push(`<span>Steps: <span>${rd.num_inference_steps}</span></span>`);
-    if (rd.guidance_scale) metaParts.push(`<span>CFG: <span>${rd.guidance_scale}</span></span>`);
+    if (rd.guidance_scale !== undefined) metaParts.push(`<span>CFG: <span>${rd.guidance_scale}</span></span>`);
+    if (rd.sampler) metaParts.push(`<span>Sampler: <span>${rd.sampler}</span></span>`);
     if (rd.strength) metaParts.push(`<span>Strength: <span>${rd.strength}</span></span>`);
     if (state.lastUsedSeed !== null) metaParts.push(`<span>Seed: <span>${state.lastUsedSeed}</span></span>`);
     else metaParts.push(`<span>Seed: <span>random</span></span>`);
@@ -2553,8 +3953,9 @@ function renderGallery() {
         div.title = item.prompt;
         div.dataset.jobId = item.jobId;
         const favClass = isFavorite(item.jobId) ? ' favorited' : '';
+        const star = '<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z"/></svg>';
         div.innerHTML = `
-            <button class="gallery-fav-btn${favClass}" data-fav-id="${item.jobId}" title="Toggle favorite">⭐</button>
+            <button class="gallery-fav-btn${favClass}" data-fav-id="${item.jobId}" title="Toggle favorite">${star}</button>
             <img src="${item.thumbUrl}" alt="${truncate(item.prompt, 30)}" loading="lazy">
             <div class="gallery-item-overlay">
                 <div class="gallery-item-prompt">${truncate(item.prompt, 60)}</div>
@@ -2605,7 +4006,9 @@ function addToHistory(job) {
         width: rd.width || null,
         height: rd.height || null,
         steps: rd.num_inference_steps || null,
-        guidance_scale: rd.guidance_scale || null,
+        guidance_scale: rd.guidance_scale ?? null,
+        quality_preset: rd.quality_preset || null,
+        sampler: rd.sampler || null,
         num_images_per_prompt: rd.num_images_per_prompt || null,
         seed: rd.seed ?? null,
         seed_used: job.seed_used ?? null,
@@ -2861,6 +4264,10 @@ function startPolling(jobId) {
 // ============================================================================
 function showInfoModal() {
     const s = state.serviceInfo;
+    const hardware = s?.hardware || {};
+    const gpuSummary = hardware.gpus?.length
+        ? hardware.gpus.map(gpu => `${gpu.name} · ${gpu.total_memory_gb ?? '?'} GB`).join(' | ')
+        : 'No supported GPU detected';
     if (!s) {
         els.infoBody.innerHTML = '<p style="color:var(--text-tertiary)">Service info unavailable. Backend offline?</p>';
     } else {
@@ -2877,6 +4284,9 @@ function showInfoModal() {
             <div class="info-row"><span>GPU</span><span>${s.gpu_name || 'Not visible'}</span></div>
             <div class="info-row"><span>PyTorch</span><span>${s.torch_version || 'unknown'}</span></div>
             <div class="info-row"><span>CUDA build</span><span>${s.torch_cuda_build || 'CPU-only'}</span></div>
+            <div class="info-row"><span>Logical CPUs</span><span>${hardware.cpu_logical_count ?? 'unknown'}</span></div>
+            <div class="info-row"><span>System RAM</span><span>${hardware.system_memory_total_gb ?? '?'} GB total · ${hardware.system_memory_available_gb ?? '?'} GB available</span></div>
+            <div class="info-row"><span>PC GPUs</span><span title="${gpuSummary}">${gpuSummary}</span></div>
             <div class="info-row"><span>Default model</span><span>${s.default_model || '(none)'}</span></div>
             <div class="info-row"><span>Active jobs</span><span>${s.active_jobs}</span></div>
             <div class="info-row"><span>Output</span><span class="path" title="${s.output_folder}">${s.output_folder}</span></div>
@@ -2907,8 +4317,12 @@ function bindEvents() {
 
     els.model_name.addEventListener('change', () => {
         updateModelInfo();
-        saveCurrentSettings();
+        applyStudioGenerationDefaults('recommended');
+        renderTemplates();
+        els.negative_prompt.disabled = selectedModel()?.supports_negative_prompt === false;
     });
+    els.qualityPreset.addEventListener('change', () => applyStudioGenerationDefaults(els.qualityPreset.value));
+    els.sampler.addEventListener('change', saveCurrentSettings);
 
     // Dimension presets
     els.dimensionPresets.querySelectorAll('.preset-btn').forEach(btn => {
@@ -2952,7 +4366,7 @@ function bindEvents() {
     });
     els.guidance_scale.addEventListener('input', () => {
         const v = parseFloat(els.guidance_scale.value);
-        if (!Number.isNaN(v) && v >= 1 && v <= 20) {
+        if (!Number.isNaN(v) && v >= 0 && v <= 20) {
             els.guidanceSlider.value = v;
         }
         saveCurrentSettings();
@@ -3261,44 +4675,86 @@ function updateLightboxNav() {
 // ============================================================================
 // Prompt Templates
 // ============================================================================
+function selectedModel() {
+    return state.models.find(model => model.key === els.model_name.value) || null;
+}
+
+function compatibleTemplates() {
+    const model = selectedModel();
+    return PROMPT_TEMPLATES.filter(template =>
+        !template.families || (model && template.families.includes(model.type))
+    );
+}
+
 function renderTemplates() {
     if (!els.templatesRow) return;
     els.templatesRow.innerHTML = '';
-    PROMPT_TEMPLATES.forEach(tpl => {
+    compatibleTemplates().forEach(tpl => {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'template-btn';
-        btn.textContent = `${tpl.icon} ${tpl.name}`;
-        btn.title = tpl.prompt.slice(0, 100) + '…';
+        btn.innerHTML = templateIcon(tpl.icon);
+        btn.appendChild(document.createTextNode(tpl.name));
+        btn.title = `${tpl.description || ''}\n${tpl.prompt}`.trim();
         btn.addEventListener('click', () => applyTemplate(tpl));
         els.templatesRow.appendChild(btn);
     });
 }
 
+
 function applyTemplate(tpl) {
-    els.prompt.value = tpl.prompt;
-    if (tpl.negative) els.negative_prompt.value = tpl.negative;
-    if (tpl.steps) {
-        els.steps.value = tpl.steps;
-        els.stepsSlider.value = Math.min(100, tpl.steps);
+    const model = selectedModel();
+    const modelType = model?.type || '';
+    const isDistilled = modelType === 'openai_image' || (model?.name || '').toLowerCase().includes('turbo');
+    const isFlux = ['flux', 'flux_gguf'].includes(modelType);
+    const supportsNegative = model?.supports_negative_prompt !== false;
+
+    els.prompt.value = tpl.prompt || '';
+    els.negative_prompt.value = supportsNegative ? (tpl.negative_prompt ?? tpl.negative ?? '') : '';
+    els.negative_prompt.disabled = !supportsNegative;
+    els.sampler.disabled = modelType === 'openai_image';
+
+    const profileName = tpl.profile || 'recommended';
+    const profile = model?.generation_profiles?.[profileName] || model?.generation_defaults;
+    if (profile) {
+        ['width', 'height', 'num_inference_steps', 'guidance_scale'].forEach(key => {
+            if (profile[key] !== undefined && els[key]) els[key].value = profile[key];
+        });
+        if (profile.sampler) els.sampler.value = profile.sampler;
+        els.qualityPreset.value = profileName;
     }
-    if (tpl.guidance) {
-        els.guidance_scale.value = tpl.guidance;
-        els.guidanceSlider.value = Math.min(20, tpl.guidance);
+
+    if (!isDistilled && !isFlux) {
+        // A template can suggest an aspect ratio, but the family profile still
+        // controls its scale so SD 1.5 never receives an SDXL-sized template.
+        const longEdge = Math.max(profile?.width || 512, profile?.height || 512);
+        const shortEdge = Math.min(profile?.width || 512, profile?.height || 512);
+        const portrait = (tpl.height || 1) > (tpl.width || 1);
+        const landscape = (tpl.width || 1) > (tpl.height || 1);
+        if (portrait) {
+            els.width.value = shortEdge;
+            els.height.value = longEdge;
+        } else if (landscape) {
+            els.width.value = longEdge;
+            els.height.value = shortEdge;
+        }
     }
-    if (tpl.width) els.width.value = tpl.width;
-    if (tpl.height) els.height.value = tpl.height;
+    els.stepsSlider.value = Math.min(100, Number(els.steps.value) || 30);
+    els.guidanceSlider.value = Math.min(20, Number(els.guidance_scale.value) || 0);
     updatePromptCount();
     saveCurrentSettings();
-    els.dimensionPresets.querySelectorAll('.preset-btn').forEach(b => {
-        b.classList.toggle('active',
-            parseInt(b.dataset.w, 10) === tpl.width && parseInt(b.dataset.h, 10) === tpl.height);
+    els.dimensionPresets.querySelectorAll('.preset-btn').forEach(button => {
+        button.classList.toggle('active', Number(button.dataset.w) === Number(els.width.value)
+            && Number(button.dataset.h) === Number(els.height.value));
     });
-    showToast(`Template applied: ${tpl.icon} ${tpl.name}`, 'success', 1800);
+    showToast(`Template applied: ${tpl.name}. ${model ? 'Settings adapted to ' + model.key + '.' : ''}`, 'success', 2400);
 }
 
+
 function surpriseMe() {
-    const tpl = PROMPT_TEMPLATES[Math.floor(Math.random() * PROMPT_TEMPLATES.length)];
+    const templates = compatibleTemplates();
+    if (!templates.length) return showToast('No prompt templates match this model.', 'warning');
+    const tpl = templates[Math.floor(Math.random() * templates.length)];
     applyTemplate(tpl);
 }
 
@@ -3359,6 +4815,8 @@ function reuseSettings(item) {
         els.guidance_scale.value = item.guidance_scale;
         els.guidanceSlider.value = Math.min(20, parseFloat(item.guidance_scale) || 7.5);
     }
+    if (item.sampler) els.sampler.value = item.sampler;
+    if (item.quality_preset) els.qualityPreset.value = item.quality_preset;
     if (item.num_images_per_prompt) els.num_images_per_prompt.value = item.num_images_per_prompt;
     if (item.seed !== null && item.seed !== undefined && item.seed >= 0) {
         els.seed.value = item.seed;
@@ -3428,6 +4886,7 @@ async function init() {
     updateGalleryStats();
     applySettingsToForm();
 
+    await loadGenerationTemplates();
     const ok = await checkHealth();
     if (ok) {
         await loadModels();
@@ -3436,6 +4895,10 @@ async function init() {
             els.model_name.value = state.settings.model_name;
             updateModelInfo();
         }
+        if (!state.settings?.sampler) applyStudioGenerationDefaults('recommended');
+        else els.sampler.disabled = selectedModel()?.type === 'openai_image';
+        renderTemplates();
+        els.negative_prompt.disabled = selectedModel()?.supports_negative_prompt === false;
     }
 
     // Periodic health re-check

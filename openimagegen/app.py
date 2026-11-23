@@ -3,8 +3,8 @@
 @file        app.py
 @author      ParisNeo
 @description FastAPI application with multi-user API-key auth, bounded worker
-             pool execution, ComfyUI-style workflow compilation, WebSocket
-             progress streaming, static UI, image upload, and legacy routes.
+pool execution, ComfyUI-style workflow compilation, WebSocket progress
+streaming, static UI, image upload, and legacy routes.
 """
 
 from __future__ import annotations
@@ -43,7 +43,9 @@ from .schemas import (
     JobSubmissionResponse,
     PreloadRequest,
 )
+from .models import get_registry
 from .nodes import get_node_registry
+from .models.presets import generation_profiles, generation_templates, recommended_generation_params
 from .nodes.openai_compatible import list_remote_models
 from .service import ImageGenService
 from .workflow import (
@@ -259,6 +261,7 @@ async def health_check() -> Dict:
         "output_folder": str(svc.output_folder.resolve()),
         "model_cache_dir": str(svc.model_cache_dir.resolve()),
         "memory_info": svc.get_memory_info(),
+        "hardware": svc.hardware,
         "auth_enabled": bool(auth_manager and auth_manager.enabled),
         "max_concurrent_jobs_per_user": svc.max_concurrent_jobs_per_user,
     }
@@ -289,8 +292,17 @@ async def get_models() -> Dict:
             "downloaded": svc._is_model_downloaded(key),
             "supports_negative_prompt": supports_neg,
             "supports_img2img": supports_i2i,
+            "generation_defaults": recommended_generation_params(key, info),
+            "generation_profiles": generation_profiles(key, info),
+            "execution_hint": svc.execution_hint(key, info),
         })
     return {"available_models": models}
+
+
+@app.get("/v1/generation/templates")
+async def get_generation_templates() -> Dict:
+    """Return shared prompt ideas; family-aware settings are resolved by each client."""
+    return {"templates": generation_templates()}
 
 
 @app.post("/preload")
@@ -366,6 +378,10 @@ async def list_gguf_presets() -> Dict:
             "installed": model_key in svc.models_config,
             "downloaded": svc._is_model_downloaded(model_key),
             "loaded": model_key in svc.pipelines,
+            "execution_hint": svc.execution_hint(
+                model_key,
+                svc.models_config.get(model_key) or build_gguf_model_config(preset["id"]),
+            ),
             "total_size_note": (
                 "Transformer size only. FLUX text encoders, VAE, tokenizer, and scheduler "
                 "are downloaded separately."

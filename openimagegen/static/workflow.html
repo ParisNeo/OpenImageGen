@@ -48,6 +48,7 @@ button { color: inherit; }
     background: linear-gradient(135deg, var(--accent), var(--accent-2));
     box-shadow: 0 4px 15px #10b98135;
 }
+.ws-icon { width: 1.1em; height: 1.1em; display: inline-block; vertical-align: -.16em; flex: 0 0 auto; }
 .ws-brand h1 { font-size: 14px; line-height: 1.15; }
 .ws-brand small { color: var(--accent); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; }
 .ws-name {
@@ -156,6 +157,14 @@ button { color: inherit; }
 .ws-port.connected { background: var(--port-color, var(--accent)); }
 .ws-port.disabled { opacity: .25; cursor: not-allowed; }
 .ws-node-body { display: grid; gap: 8px; padding: 10px; user-select: text; }
+.ws-node-progress { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 7px; }
+.ws-node-progress[hidden] { display: none; }
+.ws-node-progress-track { height: 6px; overflow: hidden; border-radius: 5px; background: var(--input); border: 1px solid var(--border); }
+.ws-node-progress-fill { width: 0; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width .25s; }
+.ws-node-progress-label { min-width: 34px; color: var(--dim); font-size: 9px; text-align: right; }
+.ws-node-progress.active .ws-node-progress-label { color: var(--warning); }
+.ws-node-progress.indeterminate .ws-node-progress-fill { width: 35%; animation: ws-node-loading 1.1s ease-in-out infinite; }
+@keyframes ws-node-loading { from { transform: translateX(-110%); } to { transform: translateX(300%); } }
 .ws-node.collapsed .ws-node-body { display: none; }
 .ws-node.collapsed .ws-ports { border-bottom: 0; padding: 3px 0 5px; }
 .ws-node.collapsed .ws-node-header { border-radius: 8px 8px 0 0; }
@@ -245,7 +254,7 @@ textarea.inspector-input { min-height: 80px; resize: vertical; }
 <div class="ws-app">
     <header class="ws-header">
         <a class="ws-brand" href="/webui" title="Back to Studio">
-            <span class="ws-brand-mark">⌘</span>
+            <span class="ws-brand-mark"><svg class="ws-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="12" cy="18" r="3"/><path d="M9 6h6M7.5 8.5l3 6.5m6-6.5-3 6.5"/></svg></span>
             <span class="ws-brand-text"><h1>OpenImageGen</h1><small>Workflow editor</small></span>
         </a>
         <input class="ws-name" id="workflowName" value="untitled_workflow" aria-label="Workflow name">
@@ -254,14 +263,14 @@ textarea.inspector-input { min-height: 80px; resize: vertical; }
                 <input class="ws-api-key" id="apiKeyInput" type="password" placeholder="API key (optional)" autocomplete="off" aria-label="API key">
                 <button class="btn" id="toggleApiKey" type="button" title="Show or hide API key" aria-label="Show API key">Show</button>
             </span>
-            <button class="btn" id="loadBtn">📂 Load</button>
-            <button class="btn" id="saveBtn">💾 Save</button>
-            <button class="btn" id="arrangeBtn">↔ Arrange</button>
-            <button class="btn" id="clearBtn">🗑 Clear</button>
-            <button class="btn" id="reloadNodesBtn" title="Discover or reload community nodes">🧩 Nodes</button>
-            <button class="btn" id="downloadsBtn">⬇ Downloads</button>
-            <button class="btn btn-danger" id="cancelBtn" hidden>■ Cancel</button>
-            <button class="btn btn-primary" id="runBtn">▶ Run workflow</button>
+            <button class="btn" id="loadBtn">Load</button>
+            <button class="btn" id="saveBtn">Save</button>
+            <button class="btn" id="arrangeBtn">Arrange</button>
+            <button class="btn" id="clearBtn">Clear</button>
+            <button class="btn" id="reloadNodesBtn" title="Discover or reload community nodes">Nodes</button>
+            <button class="btn" id="downloadsBtn">Downloads</button>
+            <button class="btn btn-danger" id="cancelBtn" hidden>Cancel</button>
+            <button class="btn btn-primary" id="runBtn">Run workflow</button>
         </div>
     </header>
 
@@ -322,6 +331,18 @@ const API_KEY_STORAGE = 'oig_api_key_v1';
 const TEMPLATE_STORAGE_KEY = 'oig_node_templates_v1';
 const NODE_SECRET_STORAGE_KEY = 'oig_node_browser_secrets_v1';
 const SVG_NS = 'http://www.w3.org/2000/svg';
+const NODE_ICON_PATHS = {
+    text_prompt: '<path d="M4 5h16M4 10h16M4 15h10M4 20h7"/>',
+    model: '<rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 1v4m6-4v4M9 19v4m6-4v4M1 9h4m-4 6h4m14-6h4m-4 6h4"/><circle cx="12" cy="12" r="2"/>',
+    image_loader: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/>',
+    sampler: '<path d="M4 6h10M18 6h2M4 12h2m4 0h10M4 18h10m4 0h2"/><circle cx="16" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="16" cy="18" r="2"/>',
+    img2img: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="m4 17 5-5 4 4 3-3 5 5M16 6l3 3-3 3"/>',
+    output: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+    default: '<path d="m8 3 4 4-4 4-4-4 4-4Zm8 10 4 4-4 4-4-4 4-4ZM8 11v5a3 3 0 0 0 3 3h1M16 13V8a3 3 0 0 0-3-3h-1"/>'
+};
+function nodeIcon(type) {
+    return `<svg class="ws-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${NODE_ICON_PATHS[type] || NODE_ICON_PATHS.default}</svg>`;
+}
 
 let NODE_SPECS = {
     text_prompt: {
@@ -396,6 +417,8 @@ const state = {
     generatedImageUrls: [],
     nodeResults: {},
     runningNodeIds: new Set(),
+    jobSnapshot: null,
+    generationTemplates: [],
     templates: []
 };
 const els = {};
@@ -622,6 +645,7 @@ function createNode(type, x, y) {
         return null;
     }
     const spec = NODE_SPECS[type];
+    if (!spec) { showToast(`Unknown node type: ${type}`, 'error'); return null; }
     const params = {};
     spec.fields.forEach(field => { params[field.key] = field.default ?? ''; });
     const rect = els.canvas.getBoundingClientRect();
@@ -777,7 +801,11 @@ function renderNodes() {
         header.style.background = spec.color;
         const title = document.createElement('span');
         title.className = 'ws-node-title';
-        title.textContent = spec.title;
+        title.innerHTML = nodeIcon(node.type);
+        title.appendChild(document.createTextNode(spec.title));
+        title.style.display = 'inline-flex';
+        title.style.alignItems = 'center';
+        title.style.gap = '6px';
         const controls = document.createElement('span');
         controls.className = 'ws-node-controls';
         const collapse = document.createElement('button');
@@ -843,11 +871,26 @@ function renderNodes() {
         const body = document.createElement('div');
         body.className = 'ws-node-body';
         spec.fields.forEach(field => body.appendChild(createNodeField(node, field)));
+        if (['sampler', 'img2img', 'model', 'openai_compatible'].includes(node.type)) {
+            const progress = document.createElement('div');
+            progress.className = 'ws-node-progress';
+            progress.dataset.progressNode = node.id;
+            progress.hidden = true;
+            const track = document.createElement('div');
+            track.className = 'ws-node-progress-track';
+            const fill = document.createElement('div');
+            fill.className = 'ws-node-progress-fill';
+            const label = document.createElement('span');
+            label.className = 'ws-node-progress-label';
+            track.appendChild(fill);
+            progress.append(track, label);
+            body.appendChild(progress);
+        }
         if (node.type === 'sampler' || node.type === 'img2img') {
             const reset = document.createElement('button');
             reset.type = 'button';
             reset.className = 'btn';
-            reset.textContent = '↺ Reset settings for selected model';
+            reset.textContent = 'Reset settings for selected model';
             reset.title = 'Restore recommended resolution, steps, CFG, and sampler for the connected checkpoint';
             reset.addEventListener('click', () => {
                 const modelNode = connectedModelNode(node);
@@ -888,6 +931,25 @@ function renderNodes() {
         element.appendChild(body);
         element.addEventListener('pointerdown', () => selectNode(node.id));
         els.world.appendChild(element);
+    });
+    updateNodeProgressBars();
+}
+
+function updateNodeProgressBars() {
+    const job = state.jobSnapshot;
+    els.world.querySelectorAll('.ws-node-progress').forEach(bar => {
+        const id = bar.dataset.progressNode;
+        const active = state.runningNodeIds.has(id);
+        const complete = job?.status === 'completed';
+        const failed = job?.status === 'failed' || job?.status === 'cancelled';
+        const percent = complete ? 100 : active ? Math.max(0, Math.min(100, Number(job?.progress) || 0)) : 0;
+        bar.hidden = !job;
+        bar.classList.toggle('active', active);
+        bar.classList.toggle('indeterminate', active && percent === 0 && job?.status === 'processing');
+        bar.querySelector('.ws-node-progress-fill').style.width = `${percent}%`;
+        bar.querySelector('.ws-node-progress-label').textContent = complete
+            ? 'Done' : failed ? 'Stopped' : active ? (percent ? `${percent}%` : 'Working') : 'Waiting';
+        bar.title = active && job?.message ? job.message : complete ? 'Completed' : '';
     });
 }
 
@@ -1022,7 +1084,13 @@ function createNodeField(node, field) {
         input = document.createElement('select');
         (field.options || []).forEach(option => input.appendChild(new Option(option.label, option.value)));
         input.value = node.params[field.key] ?? '';
-        input.addEventListener('change', () => updateParam(node, field.key, input.value));
+        input.addEventListener('change', () => {
+            updateParam(node, field.key, input.value);
+            if (field.key === 'quality_preset') {
+                applyGenerationProfile(node, input.value);
+                renderAll();
+            }
+        });
     } else if (field.type === 'text') {
         input = document.createElement('input');
         input.type = 'text';
@@ -1074,31 +1142,48 @@ function updateParam(node, key, value) {
     scheduleSave();
 }
 
+function applyGenerationProfile(node, profileName = 'recommended') {
+    const model = connectedModel(node);
+    const profiles = model?.generation_profiles || {};
+    const profile = profiles[profileName] || model?.generation_defaults;
+    if (!profile) return;
+    Object.entries(profile).forEach(([key, value]) => { node.params[key] = value; });
+    node.params.quality_preset = profileName;
+    if (model && !model.supports_negative_prompt) delete node.inputs.negative_prompt;
+}
+
+function addGenerationTemplate(template) {
+    const prompt = createNode('text_prompt', 50, 50);
+    const modelNode = state.nodes.find(node => node.type === 'model') || createNode('model', 50, 370);
+    const sampler = createNode('sampler', 410, 50);
+    const output = state.nodes.find(node => node.type === 'output') || createNode('output', 760, 100);
+    if (!prompt || !modelNode || !sampler || !output) return;
+    prompt.params.text = template.prompt;
+    const model = getModel(modelNode.params.model_name);
+    if (model?.supports_negative_prompt && template.negative_prompt) {
+        const negative = createNode('text_prompt', 50, 230);
+        negative.params.text = template.negative_prompt;
+        sampler.inputs.negative_prompt = negative.id;
+    }
+    sampler.inputs.prompt = prompt.id;
+    sampler.inputs.model = modelNode.id;
+    output.inputs.params = `${sampler.id}.params`;
+    applyModelDefaults(modelNode, true);
+    state.selectedId = sampler.id;
+    renderAll();
+    requestAnimationFrame(fitView);
+    scheduleSave();
+    showToast(`Added “${template.name}” with model-aware generation settings.`, 'success');
+}
+
 function applyModelDefaults(modelNode, forceReset = false) {
     const model = getModel(modelNode.params.model_name);
     if (!model) return;
-    const isFlux = model.type === 'flux' || model.type === 'flux_gguf';
-    const isQwen = model.type === 'qwen_image';
-    const isTurbo = model.type === 'stable_diffusion' && model.name.toLowerCase().includes('turbo');
-    const isSDXL = model.type === 'stable_diffusion_xl';
     state.nodes.forEach(node => {
         if (connectedModelNode(node)?.id !== modelNode.id || !['sampler', 'img2img'].includes(node.type)) return;
         if (!forceReset && node.modelDefaultsKey === modelNode.params.model_name) return;
         node.modelDefaultsKey = modelNode.params.model_name;
-        node.params.num_inference_steps = isFlux ? 4 : isQwen ? 50 : isTurbo ? 2 : 30;
-        node.params.guidance_scale = isFlux || isTurbo ? 0 : isQwen ? 4 : 7;
-        node.params.sampler = 'dpmpp_2m_karras';
-        node.params.width = isSDXL ? 1024 : 512;
-        node.params.height = node.params.width;
-        if (isQwen) {
-            node.params.width = 1328;
-            node.params.height = 1328;
-        }
-        if (isFlux) {
-            node.params.width = model.key.includes('q8') ? 1024 : 512;
-            node.params.height = node.params.width;
-        }
-        if (!model.supports_negative_prompt) delete node.inputs.negative_prompt;
+        applyGenerationProfile(node, 'recommended');
     });
     scheduleSave();
 }
@@ -1357,6 +1442,7 @@ function renderInspector() {
                 else bodyInput.value = value ?? '';
             }
             if (field.type === 'model') { applyModelDefaults(node); renderAll(); }
+            if (field.key === 'quality_preset') { applyGenerationProfile(node, value); renderAll(); }
         });
         wrapper.append(label, input);
         els.inspector.appendChild(wrapper);
@@ -1451,12 +1537,14 @@ function buildSubmission() {
         nodes: state.nodes.map(node => {
             const params = {};
             Object.entries(node.params).forEach(([key, value]) => {
+                if (key === 'quality_preset') return;
                 if (value === null || value === undefined || value === '') return;
                 if (key === 'seed' && Number(value) < 0) return;
                 params[key] = value;
             });
             const model = connectedModel(node);
             if (model && !model.supports_negative_prompt) delete params.negative_prompt;
+            if (model?.type === 'openai_image') delete params.sampler;
             return { id: node.id, type: node.type, params, inputs: { ...node.inputs } };
         })
     };
@@ -1474,13 +1562,13 @@ async function runWorkflow() {
     saveLocal();
     state.generatedImageUrls = [];
     state.nodeResults = {};
+    state.jobSnapshot = { status: 'pending', progress: 0, message: 'Submitting workflow…' };
     state.runningNodeIds.clear();
     renderNodes();
     els.runBtn.disabled = true;
     els.cancelBtn.hidden = false;
     setProgress(0);
     setStatus('running', 'Submitting workflow…');
-    window.OIGDownloads?.open();
     try {
         const result = await apiFetch('/v1/workflows/submit', {
             method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(buildSubmission())
@@ -1488,7 +1576,7 @@ async function runWorkflow() {
         state.currentJobId = result.job_id;
         setStatus('running', 'Queued for generation…');
         trackJob(result.job_id);
-        window.OIGDownloads?.refresh();
+        window.OIGDownloads?.refresh({ autoOpen: true, watchSeconds: 15 });
     } catch (error) {
         resetRunControls();
         setStatus('error', error.message);
@@ -1522,6 +1610,7 @@ async function pollJob(jobId) {
 }
 
 function updateRunningNodes(job) {
+    state.jobSnapshot = job;
     let activeIds = new Set(job.active_node_ids || []);
     const message = String(job.message || '').toLowerCase();
     if (job.status === 'processing' && !activeIds.size) {
@@ -1548,6 +1637,7 @@ function updateRunningNodes(job) {
         // unusual narrow layouts; refreshing edges keeps wires glued to ports.
         scheduleEdges();
     }
+    updateNodeProgressBars();
 }
 
 function handleJob(job) {
@@ -1598,6 +1688,7 @@ function stopTracking(clearJob = true) {
 function finishJob() {
     state.runningNodeIds.clear();
     state.nodes.forEach(node => nodeElement(node.id)?.classList.remove('running'));
+    updateNodeProgressBars();
     stopTracking();
     resetRunControls();
     loadModels();
@@ -1693,7 +1784,7 @@ function setProgress(value) {
 function normalizeNodeSpec(spec) {
     return {
         ...spec,
-        title: `${spec.icon || '🧩'} ${spec.title}`,
+        title: spec.title,
         inputs: (spec.inputs || []).map(input => ({ ...input, accepts: input.kind })),
         output: spec.outputs?.[0] ? { ...spec.outputs[0], kind: spec.outputs[0].kind } : null,
         outputs: spec.outputs || []
@@ -1731,8 +1822,29 @@ function renderPalette() {
         const dot = document.createElement('span');
         dot.className = 'palette-dot';
         dot.style.background = spec.color;
-        button.append(dot, document.createTextNode(`${spec.icon || '🧩'} ${spec.title}`));
+        button.append(dot, document.createTextNode(spec.title));
         button.addEventListener('click', () => createNode(spec.type));
+        els.nodePalette.appendChild(button);
+    });
+    const compatiblePromptTemplates = state.generationTemplates.filter(template =>
+        !query && (!template.families || template.families.includes(state.models[0]?.type))
+    );
+    if (compatiblePromptTemplates.length) {
+        const heading = document.createElement('h3');
+        heading.className = 'ws-section-title';
+        heading.style.marginTop = '12px';
+        heading.textContent = 'Prompt starter graphs';
+        els.nodePalette.appendChild(heading);
+    }
+    compatiblePromptTemplates.forEach(template => {
+        const button = document.createElement('button');
+        button.className = 'palette-btn';
+        button.title = `${template.description || ''}\n${template.prompt}`.trim();
+        const dot = document.createElement('span');
+        dot.className = 'palette-dot';
+        dot.style.background = '#059669';
+        button.append(dot, document.createTextNode(template.name));
+        button.addEventListener('click', () => addGenerationTemplate(template));
         els.nodePalette.appendChild(button);
     });
     const templates = state.templates.filter(template =>
@@ -1753,7 +1865,7 @@ function renderPalette() {
         const dot = document.createElement('span');
         dot.className = 'palette-dot';
         dot.style.background = spec.color;
-        button.append(dot, document.createTextNode(`★ ${template.name}`));
+        button.append(dot, document.createTextNode(template.name));
         button.addEventListener('click', () => createNodeFromTemplate(template));
         button.addEventListener('contextmenu', event => {
             event.preventDefault();
@@ -1778,6 +1890,7 @@ async function loadModels() {
         state.models = result.available_models || [];
         state.nodes.filter(node => node.type === 'model').forEach(node => {
             if (!getModel(node.params.model_name)) node.params.model_name = state.models[0]?.key || '';
+            applyModelDefaults(node);
         });
         renderAll();
     } catch (error) {
@@ -1846,6 +1959,7 @@ function bindEvents() {
         if (!state.nodes.length || !confirm('Remove all nodes from this workflow?')) return;
         state.nodes = []; state.selectedId = null;
         state.runningNodeIds.clear();
+        state.jobSnapshot = null;
         cancelConnection(false); renderAll(); scheduleSave();
     });
 
@@ -1891,6 +2005,10 @@ async function init() {
     });
     bindEvents();
     try { await loadNodeSpecs(); } catch (error) { showToast(`Using built-in nodes: ${error.message}`, 'warning'); }
+    try {
+        const result = await apiFetch('/v1/generation/templates');
+        state.generationTemplates = result.templates || [];
+    } catch {}
     loadNodeTemplates();
     renderPalette();
     const restored = loadLocal();

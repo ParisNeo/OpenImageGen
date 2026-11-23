@@ -46,6 +46,14 @@
         note.className = 'gguf-preset-note';
         note.textContent = `${preset.total_size_note} Base: ${preset.base_repository}. GGUF: ${preset.gguf_repository}.`;
 
+        const hint = document.createElement('div');
+        hint.className = 'gguf-preset-note';
+        if (preset.execution_hint) {
+            const label = document.createElement('strong');
+            label.textContent = `${preset.execution_hint.label}: `;
+            hint.append(label, document.createTextNode(preset.execution_hint.detail));
+        }
+
         const actions = document.createElement('div');
         actions.className = 'gguf-preset-actions';
         const install = document.createElement('button');
@@ -69,7 +77,7 @@
                     : 'Not installed';
 
         actions.append(install, status);
-        card.append(title, meta, description, note, actions);
+        card.append(title, meta, description, note, hint, actions);
         return card;
     }
 

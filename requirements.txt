@@ -3,6 +3,7 @@ uvicorn[standard]>=0.20.0
 pydantic>=2.0.0
 torch>=2.0.0
 diffusers>=0.35.0 # GGUF quantization support
+torchsde>=0.2.6   # Required by diffusers DPMSolverSDEScheduler (SDE samplers)
 peft>=0.17.0     # Required at import time by current diffusers releases
 transformers>=4.44.0
 accelerate>=0.25.0

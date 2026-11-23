@@ -2,12 +2,13 @@
 @file        service.py
 @author      ParisNeo
 @description Image generation service: orchestrates adapters, jobs, and artifact cleanup.
-             Coordinates configuration, model adapters, job execution, periodic cleanup,
-             WebSocket progress streaming, image-to-image generation, and PNG metadata embedding.
+Coordinates configuration, model adapters, job execution, periodic cleanup,
+WebSocket progress streaming, image-to-image generation, and PNG metadata embedding.
 """
 
 from __future__ import annotations
 
+import importlib
 import logging
 import threading
 import time
@@ -23,8 +24,10 @@ from PIL.PngImagePlugin import PngInfo
 from .config import load_config
 from .download_jobs import DownloadJobManager
 from .downloads import download_model
+from .hardware import hardware_profile, model_execution_hint
 from .image_processing import apply_image_operations
 from .jobs import InMemoryJobStore, JobStore
+from .gguf_catalog import GGUF_PRESETS, build_gguf_model_config
 from .models import get_registry
 from .schemas import ImageGenerationRequest, ImageToImageRequest, JobStatus
 from .websocket_manager import WebSocketManager
@@ -101,6 +104,7 @@ class ImageGenService:
         self.ws_manager = WebSocketManager()
         self.model_last_used: Dict[str, float] = {}
         self.loading_model_key: Optional[str] = None
+        self.hardware = hardware_profile(self.device)
 
         execution_cfg = self.config.get("execution", {}) if isinstance(self.config, dict) else {}
         max_workers = max(1, int(execution_cfg.get("max_workers", 2)))
@@ -242,6 +246,15 @@ class ImageGenService:
 
         logger.info(f"Unloaded model '{model_key}' from memory.")
         return True
+
+    def execution_hint(self, model_key: str, model_info: Dict[str, Any]) -> Dict[str, Any]:
+        """Estimate the best execution mode for this model on the server PC."""
+        return model_execution_hint(
+            model_key,
+            model_info,
+            self.hardware,
+            force_gpu=self.force_gpu,
+        )
 
     def get_memory_info(self) -> Dict[str, Any]:
         """Return current memory and resource usage information."""
@@ -546,6 +559,8 @@ class ImageGenService:
     def _is_model_downloaded(self, model_key: str) -> bool:
         """Check every repository required by a model, including GGUF base fallbacks."""
         info = self.models_config.get(model_key, {})
+        if info.get("type") == "openai_image":
+            return True
         model_name = info.get("name")
         if not model_name:
             return False
@@ -625,25 +640,61 @@ class ImageGenService:
                 except Exception as error:
                     logger.warning("Could not unload request LoRAs cleanly: %s", error)
 
+
     def _configure_scheduler(self, pipeline: Any, sampler: Optional[str]) -> None:
-        """Apply a request-scoped scheduler without sharing scheduler state."""
+        """Apply the selected scheduler, importing only the class actually used.
+
+        Schedulers are resolved lazily so that optional dependencies (notably
+        ``torchsde`` for the DPMSolver SDE family) are only required when the
+        caller selects a sampler that needs them. Importing the entire scheduler
+        set up-front would otherwise break every generation on a minimal install.
+        """
         if not sampler:
             return
-        from diffusers.schedulers.scheduling_ddim import DDIMScheduler
-        from diffusers.schedulers.scheduling_dpmsolver_multistep import DPMSolverMultistepScheduler
-        from diffusers.schedulers.scheduling_euler_ancestral_discrete import EulerAncestralDiscreteScheduler
-        from diffusers.schedulers.scheduling_euler_discrete import EulerDiscreteScheduler
-        scheduler_classes = {
-            "dpmpp_2m_karras": DPMSolverMultistepScheduler,
-            "euler_a": EulerAncestralDiscreteScheduler,
-            "euler": EulerDiscreteScheduler,
-            "ddim": DDIMScheduler,
+        scheduler_targets: Dict[str, tuple[str, str]] = {
+            "dpmpp_2m": ("scheduling_dpmsolver_multistep", "DPMSolverMultistepScheduler"),
+            "dpmpp_2m_karras": ("scheduling_dpmsolver_multistep", "DPMSolverMultistepScheduler"),
+            "dpmpp_2m_sde_karras": ("scheduling_dpmsolver_multistep", "DPMSolverMultistepScheduler"),
+            "dpmpp_sde_karras": ("scheduling_dpmsolver_sde", "DPMSolverSDEScheduler"),
+            "unipc": ("scheduling_unipc_multistep", "UniPCMultistepScheduler"),
+            "flowmatch_euler": ("scheduling_flow_match_euler_discrete", "FlowMatchEulerDiscreteScheduler"),
+            "euler_a": ("scheduling_euler_ancestral_discrete", "EulerAncestralDiscreteScheduler"),
+            "euler": ("scheduling_euler_discrete", "EulerDiscreteScheduler"),
+            "ddim": ("scheduling_ddim", "DDIMScheduler"),
         }
-        scheduler_class = scheduler_classes.get(sampler)
-        if scheduler_class is None:
+        target = scheduler_targets.get(sampler)
+        if target is None:
             raise ValueError(f"Unsupported sampler '{sampler}'.")
-        options = {"use_karras_sigmas": True} if sampler == "dpmpp_2m_karras" else {}
+        module_name, class_name = target
+        try:
+            module = importlib.import_module(f"diffusers.schedulers.{module_name}")
+            scheduler_class = getattr(module, class_name)
+        except ModuleNotFoundError as error:
+            missing = getattr(error, "name", None) or "an optional dependency"
+            raise ValueError(
+                f"Sampler '{sampler}' requires the optional '{missing}' package. "
+                f"Install it in the server environment with `pip install {missing}` "
+                f"or choose a different sampler."
+            ) from error
+
+        options: Dict[str, Any] = {}
+        if sampler.startswith("dpmpp_2m"):
+            options = {
+                "algorithm_type": "dpmsolver++",
+                "final_sigmas_type": "sigma_min",
+                "use_karras_sigmas": sampler.endswith("_karras"),
+            }
+            if sampler == "dpmpp_2m_sde_karras":
+                options["solver_type"] = "midpoint"
+        elif sampler == "dpmpp_sde_karras":
+            options = {"use_karras_sigmas": True}
+        elif sampler == "unipc":
+            options = {"final_sigmas_type": "sigma_min"}
+
+        if not hasattr(pipeline, "scheduler"):
+            raise ValueError(f"Model pipeline does not support local sampler '{sampler}'.")
         pipeline.scheduler = scheduler_class.from_config(pipeline.scheduler.config, **options)
+
 
     def _build_progress_callback(self, job_id: str, total_steps: int):
         """Factory for the diffusers `callback` that updates job progress and notifies WebSocket clients."""
@@ -658,6 +709,7 @@ class ImageGenService:
             job = self.jobs.get(job_id)
             if job is not None and job.progress != progress:
                 job.progress = progress
+                job.message = f"Denoising… step {step + 1}/{total_steps}"
                 self.jobs.update(job)
                 logger.debug(f"Job {job_id}: {progress}% (step {step + 1}/{total_steps})")
                 self.ws_manager.notify_sync(job_id, {
@@ -697,6 +749,8 @@ class ImageGenService:
             png_meta.add_text("seed", str(seed))
         png_meta.add_text("steps", str(steps))
         png_meta.add_text("guidance_scale", str(cfg))
+        if getattr(request, "sampler", None):
+            png_meta.add_text("sampler", request.sampler)
         png_meta.add_text("width", str(img.width))
         png_meta.add_text("height", str(img.height))
         if hasattr(request, "strength"):
@@ -966,6 +1020,9 @@ class ImageGenService:
 
         adapter = self.adapters[model_key]
         self._configure_scheduler(pipeline, getattr(request, "sampler", None))
+        if adapter.type_name == "qwen_image_edit":
+            request.width = None
+            request.height = None
         if not adapter.supports_img2img():
             msg = f"Model '{model_key}' does not support img2img generation."
             logger.error(f"Job {job_id}: {msg}")

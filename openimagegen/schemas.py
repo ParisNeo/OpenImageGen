@@ -19,6 +19,7 @@ class LoRARequest(BaseModel):
     weight: float = Field(1.0, ge=0.0, le=4.0)
     adapter_name: Optional[str] = Field(None, max_length=64)
 
+
 class ImageGenerationRequest(BaseModel):
     """Request body for POST /submit."""
 
@@ -31,7 +32,10 @@ class ImageGenerationRequest(BaseModel):
     width: Optional[int] = Field(None, gt=0, le=4096)
     num_inference_steps: Optional[int] = Field(None, alias="steps", gt=0, le=500)
     guidance_scale: Optional[float] = Field(None, ge=0, le=50)
-    sampler: Optional[Literal["dpmpp_2m_karras", "euler_a", "euler", "ddim"]] = None
+    sampler: Optional[Literal[
+        "dpmpp_2m", "dpmpp_2m_karras", "dpmpp_2m_sde_karras",
+        "dpmpp_sde_karras", "unipc", "flowmatch_euler", "euler_a", "euler", "ddim",
+    ]] = None
     seed: Optional[int] = Field(None, ge=0)
     num_images_per_prompt: Optional[int] = Field(None, gt=0, le=8)
     loras: List[LoRARequest] = Field(default_factory=list, max_length=8)
@@ -42,6 +46,7 @@ class ImageGenerationRequest(BaseModel):
         if value is not None and value % 8 != 0:
             raise ValueError("Image dimensions must be divisible by 8.")
         return value
+
 
 class ImageToImageRequest(ImageGenerationRequest):
     """Request body for POST /submit_img2img."""

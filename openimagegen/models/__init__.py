@@ -17,5 +17,10 @@ from . import kandinsky  # noqa: F401
 from . import flux  # noqa: F401
 from . import gguf  # noqa: F401
 from . import qwen_image  # noqa: F401
+from . import stable_diffusion_3  # noqa: F401
+from . import pixart  # noqa: F401
+from . import sana  # noqa: F401
+from . import openai_image  # noqa: F401
+from . import openai_image  # noqa: F401
 
 __all__ = ["BaseModelAdapter", "ModelRegistry", "get_registry"]

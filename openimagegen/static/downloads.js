@@ -34,6 +34,7 @@
     let timer = null;
     let latestJobs = [];
     let requestInFlight = false;
+    let watchUntil = 0;
 
     function headers() {
         return typeof authHeaders === 'function' ? authHeaders() : {};
@@ -101,23 +102,58 @@
         }
     }
 
-    async function poll() {
+    function hasActiveJobs() {
+        return latestJobs.some(job => job.status === 'pending' || job.status === 'running');
+    }
+
+    function schedulePoll() {
+        if (timer) clearTimeout(timer);
+        let delay = 0;
+        if (hasActiveJobs()) delay = 1000;
+        else if (Date.now() < watchUntil) delay = 1000;
+        else if (!panel.hidden) delay = 5000;
+        if (delay > 0) {
+            timer = setTimeout(runPollTick, delay);
+        } else {
+            timer = null;
+        }
+    }
+
+    async function runPollTick() {
         await refresh();
-        const active = latestJobs.some(job => job.status === 'pending' || job.status === 'running');
-        timer = setTimeout(poll, active ? 1000 : 5000);
+        if (hasActiveJobs() && Date.now() < watchUntil) panel.hidden = false;
+        schedulePoll();
     }
 
-    function open() {
+    async function kickPoll(options = {}) {
+        if (options.watchSeconds) {
+            watchUntil = Date.now() + options.watchSeconds * 1000;
+        }
+        await refresh();
+        if (options.autoOpen && hasActiveJobs()) panel.hidden = false;
+        schedulePoll();
+    }
+
+    async function open() {
         panel.hidden = false;
-        refresh();
+        await refresh();
+        schedulePoll();
     }
 
-    panel.querySelector('.oig-downloads-close').addEventListener('click', () => { panel.hidden = true; });
-    toggle.addEventListener('click', () => { panel.hidden = !panel.hidden; if (!panel.hidden) refresh(); });
-    document.getElementById('downloadsBtn')?.addEventListener('click', open);
-    window.addEventListener('oig:download-started', () => { open(); refresh(); });
+    function close() {
+        panel.hidden = true;
+        schedulePoll();
+    }
 
-    window.OIGDownloads = { open, refresh };
+    panel.querySelector('.oig-downloads-close').addEventListener('click', close);
+    toggle.addEventListener('click', () => {
+        if (panel.hidden) open();
+        else close();
+    });
+    document.getElementById('downloadsBtn')?.addEventListener('click', open);
+    window.addEventListener('oig:download-started', () => { open(); });
+
+    window.OIGDownloads = { open, refresh: kickPoll };
     render();
-    poll();
+    kickPoll();
 })();

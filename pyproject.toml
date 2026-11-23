@@ -17,6 +17,7 @@ dependencies = [
     "pydantic>=2.0.0",
     "torch>=2.0.0",
     "diffusers>=0.35.0",
+    "torchsde>=0.2.6",
     "transformers>=4.44.0",
     "accelerate>=0.25.0",
     "gguf>=0.10.0",
@@ -52,6 +53,10 @@ openimagegen = "openimagegen.cli:main"
 
 [project.optional-dependencies]
 dev = ["pytest", "black"]
+docs = [
+    "sphinx>=7.0",
+    "sphinx-rtd-theme>=2.0",
+]
 
 [tool.setuptools]
 packages = ["openimagegen", "openimagegen.models", "openimagegen.nodes"]

@@ -58,6 +58,17 @@ def apply_image_operations(
             if method not in _RESAMPLING:
                 raise ValueError(f"Unknown resampling method '{method}'.")
             result = result.resize(size, _RESAMPLING[method])
+        elif kind == "composite_rgba":
+            layers = operation.get("layers", [])
+            if not layers:
+                raise ValueError("Layered Qwen output did not include RGBA layers.")
+            from base64 import b64decode
+            from io import BytesIO
+            composite = Image.new("RGBA", result.size, (255, 255, 255, 255))
+            for encoded in layers:
+                with Image.open(BytesIO(b64decode(encoded, validate=True))) as layer:
+                    composite.alpha_composite(layer.convert("RGBA"))
+            result = composite.convert("RGB")
         elif kind == "filter":
             filter_name = str(operation.get("filter", "blur"))
             if filter_name == "blur":

@@ -57,13 +57,23 @@ class ConcatenateTextNode(BaseWorkflowNode):
         return {"text": str(params.get("separator", "\n")).join(values)}
 
 GENERATION_FIELDS = [
+    NodeField(key="quality_preset", label="Quality profile", type="select", default="recommended", options=[
+        {"value": "draft", "label": "Draft · fastest"},
+        {"value": "recommended", "label": "Recommended · balanced"},
+        {"value": "quality", "label": "Quality · slower"},
+    ], help="Applies model-specific native resolution, steps, CFG, and sampler settings."),
     NodeField(key="width", label="Width", type="number", default=512, min=64, max=2048, step=8),
     NodeField(key="height", label="Height", type="number", default=512, min=64, max=2048, step=8),
     NodeField(key="num_inference_steps", label="Steps", type="number", default=30, min=1, max=200, step=1),
     NodeField(key="guidance_scale", label="CFG", type="number", default=7, min=0, max=30, step=.5),
     NodeField(key="sampler", label="Sampler", type="select", default="dpmpp_2m_karras", options=[
-        {"value": "dpmpp_2m_karras", "label": "DPM++ 2M Karras · recommended"},
-        {"value": "euler_a", "label": "Euler Ancestral"},
+        {"value": "dpmpp_2m_karras", "label": "DPM++ 2M Karras · balanced"},
+        {"value": "dpmpp_2m_sde_karras", "label": "DPM++ 2M SDE Karras · quality"},
+        {"value": "dpmpp_2m", "label": "DPM++ 2M"},
+        {"value": "dpmpp_sde_karras", "label": "DPM++ SDE Karras"},
+        {"value": "unipc", "label": "UniPC · fast at low steps"},
+        {"value": "flowmatch_euler", "label": "FlowMatch Euler · FLUX / SD3 / Qwen"},
+        {"value": "euler_a", "label": "Euler Ancestral · Turbo"},
         {"value": "euler", "label": "Euler"},
         {"value": "ddim", "label": "DDIM"},
     ]),

@@ -56,6 +56,47 @@ type = "stable_diffusion"
 name = "stabilityai/sdxl-turbo"
 type = "stable_diffusion_xl"
 
+[models.stable_diffusion_3_5_medium]
+name = "stabilityai/stable-diffusion-3.5-medium"
+type = "stable_diffusion_3"
+
+[models.pixart_sigma_1024]
+name = "PixArt-alpha/PixArt-Sigma-XL-2-1024-MS"
+type = "pixart_sigma"
+
+[models.sana_1_6b_1024]
+name = "Efficient-Large-Model/Sana_1600M_1024px_BF16_diffusers"
+type = "sana"
+variant = "bf16"
+
+[models.gpt_image_1]
+name = "gpt-image-1"
+type = "openai_image"
+base_url = "https://api.openai.com/v1"
+api_key_env = "OPENAI_API_KEY"
+timeout_seconds = 180
+
+[models.dall_e_3]
+name = "dall-e-3"
+type = "openai_image"
+base_url = "https://api.openai.com/v1"
+api_key_env = "OPENAI_API_KEY"
+timeout_seconds = 180
+
+[models.openai_gpt_image_1]
+name = "openai/gpt-image-1"
+type = "openai_image"
+remote_model = "gpt-image-1"
+api_key_env = "OPENAI_API_KEY"
+quality = "high"
+
+[models.openai_dall_e_3]
+name = "openai/dall-e-3"
+type = "openai_image"
+remote_model = "dall-e-3"
+api_key_env = "OPENAI_API_KEY"
+quality = "hd"
+
 [models.qwen_image]
 name = "Qwen/Qwen-Image"
 type = "qwen_image"
