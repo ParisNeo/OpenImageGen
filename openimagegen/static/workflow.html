@@ -236,6 +236,104 @@ textarea.inspector-input { min-height: 80px; resize: vertical; }
 .ws-toast { padding: 10px 13px; border: 1px solid var(--border-strong); border-left: 3px solid var(--accent); border-radius: 7px; background: #1b232deF; box-shadow: var(--shadow); font-size: 12px; }
 .ws-toast.error { border-left-color: var(--danger); }
 .ws-toast.warning { border-left-color: var(--warning); }
+:root {
+    color-scheme: dark;
+    --panel-alpha: #11161cf2;
+    --hover: #202934;
+    --overlay: #0b1016f5;
+    --grid: #ffffff06;
+    --toast: #1b232def;
+}
+:root[data-theme="aurora-light"] {
+    color-scheme: light;
+    --bg: #f4f6f9;
+    --panel: #ffffff;
+    --panel-2: #edf1f6;
+    --input: #ffffff;
+    --border: #d7dee8;
+    --border-strong: #aeb9c7;
+    --text: #18212c;
+    --muted: #526172;
+    --dim: #7c8998;
+    --accent: #059669;
+    --accent-2: #0891b2;
+    --danger: #dc2626;
+    --warning: #d97706;
+    --shadow: 0 12px 30px #26364a20;
+    --panel-alpha: #fffffff2;
+    --hover: #e2e8f0;
+    --overlay: #f8fafcf5;
+    --grid: #33415512;
+    --toast: #fffffff2;
+}
+:root[data-theme="nebula-dark"] {
+    --bg: #0c0914;
+    --panel: #151020;
+    --panel-2: #211832;
+    --input: #110c1b;
+    --border: #372a50;
+    --border-strong: #554073;
+    --text: #f5f2ff;
+    --muted: #b8add0;
+    --dim: #81759b;
+    --accent: #a78bfa;
+    --accent-2: #22d3ee;
+    --danger: #fb7185;
+    --warning: #fbbf24;
+    --panel-alpha: #151020f2;
+    --hover: #2a2040;
+    --overlay: #100b1cf5;
+    --grid: #c4b5fd0b;
+    --toast: #211832f2;
+}
+:root[data-theme="nebula-light"] {
+    color-scheme: light;
+    --bg: #f7f5fc;
+    --panel: #ffffff;
+    --panel-2: #eee9f8;
+    --input: #ffffff;
+    --border: #dcd3eb;
+    --border-strong: #b8a9d2;
+    --text: #251c35;
+    --muted: #5c4f72;
+    --dim: #8b7fa1;
+    --accent: #7c3aed;
+    --accent-2: #0891b2;
+    --danger: #e11d48;
+    --warning: #d97706;
+    --shadow: 0 12px 30px #37265320;
+    --panel-alpha: #fffffff2;
+    --hover: #e4dcf4;
+    --overlay: #faf8fff5;
+    --grid: #6d28d912;
+    --toast: #fffffff2;
+}
+body { transition: background-color .25s, color .25s; }
+.ws-theme-select {
+    min-height: 34px; padding: 6px 28px 6px 9px; color: var(--text); background: var(--input);
+    border: 1px solid var(--border); border-radius: 7px; font-size: 11px; font-weight: 600;
+}
+.ws-header { background: var(--panel-alpha); }
+.btn:hover:not(:disabled) { background: var(--hover); }
+.ws-canvas {
+    background-image: linear-gradient(var(--grid) 1px, transparent 1px),
+                      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+}
+.ws-canvas-tools { background: var(--panel-alpha); }
+.ws-result-overlay { background: var(--overlay); }
+.ws-toast { background: var(--toast); }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 3px;
+}
+::selection { background: var(--accent); color: #fff; }
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
 @media (max-width: 1100px) {
     .ws-main { grid-template-columns: 150px minmax(0, 1fr) 230px; }
     .ws-api-key { display: none; }
@@ -263,6 +361,12 @@ textarea.inspector-input { min-height: 80px; resize: vertical; }
                 <input class="ws-api-key" id="apiKeyInput" type="password" placeholder="API key (optional)" autocomplete="off" aria-label="API key">
                 <button class="btn" id="toggleApiKey" type="button" title="Show or hide API key" aria-label="Show API key">Show</button>
             </span>
+            <select class="ws-theme-select" id="themeSelect" aria-label="Color theme" title="Color theme">
+                <option value="aurora-dark">Aurora · Dark</option>
+                <option value="aurora-light">Aurora · Light</option>
+                <option value="nebula-dark">Nebula · Dark</option>
+                <option value="nebula-light">Nebula · Light</option>
+            </select>
             <button class="btn" id="loadBtn">Load</button>
             <button class="btn" id="saveBtn">Save</button>
             <button class="btn" id="arrangeBtn">Arrange</button>
@@ -328,6 +432,8 @@ textarea.inspector-input { min-height: 80px; resize: vertical; }
 const STORAGE_KEY = 'oig_workflow_v2';
 const LEGACY_STORAGE_KEY = 'oig_workflow_v1';
 const API_KEY_STORAGE = 'oig_api_key_v1';
+const THEME_KEY = 'oig_theme_v1';
+const THEMES = new Set(['aurora-dark', 'aurora-light', 'nebula-dark', 'nebula-light']);
 const TEMPLATE_STORAGE_KEY = 'oig_node_templates_v1';
 const NODE_SECRET_STORAGE_KEY = 'oig_node_browser_secrets_v1';
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -429,7 +535,7 @@ function cacheDom() {
     ['workflowName', 'apiKeyInput', 'loadBtn', 'saveBtn', 'arrangeBtn', 'clearBtn', 'runBtn', 'cancelBtn',
      'canvas', 'world', 'edges', 'edgeGroup', 'inspector', 'zoomLabel', 'zoomOut', 'zoomIn', 'fitBtn',
      'reloadNodesBtn', 'resetViewBtn', 'statusDot', 'statusText', 'progressFill', 'results', 'toasts',
-     'resultOverlay', 'resultClose', 'resultStage', 'resultActions', 'resultTitle', 'nodePalette', 'nodeSearch'].forEach(id => {
+     'resultOverlay', 'resultClose', 'resultStage', 'resultActions', 'resultTitle', 'nodePalette', 'nodeSearch', 'themeSelect'].forEach(id => {
         els[id] = document.getElementById(id);
     });
 }
@@ -1911,7 +2017,32 @@ function seedWorkflow() {
     scheduleSave();
 }
 
+function applyTheme(theme, persist = true) {
+    if (!THEMES.has(theme)) return;
+    document.documentElement.dataset.theme = theme;
+    els.themeSelect.value = theme;
+    if (persist) {
+        try { localStorage.setItem(THEME_KEY, JSON.stringify(theme)); } catch {}
+    }
+}
+
+function initTheme() {
+    let theme = null;
+    try { theme = JSON.parse(localStorage.getItem(THEME_KEY) || 'null'); } catch {}
+    if (!THEMES.has(theme)) {
+        theme = window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'aurora-light' : 'aurora-dark';
+    }
+    applyTheme(theme, false);
+}
+
 function bindEvents() {
+    els.themeSelect.addEventListener('change', () => applyTheme(els.themeSelect.value));
+    window.addEventListener('storage', event => {
+        if (event.key !== THEME_KEY) return;
+        let theme = null;
+        try { theme = JSON.parse(event.newValue || 'null'); } catch {}
+        if (THEMES.has(theme)) applyTheme(theme, false);
+    });
     els.nodeSearch.addEventListener('input', renderPalette);
     els.reloadNodesBtn.addEventListener('click', reloadNodes);
     els.runBtn.addEventListener('click', runWorkflow);
@@ -1995,6 +2126,7 @@ function bindEvents() {
 
 async function init() {
     cacheDom();
+    initTheme();
     try { els.apiKeyInput.value = localStorage.getItem(API_KEY_STORAGE) || ''; } catch {}
     const toggleApiKey = document.getElementById('toggleApiKey');
     toggleApiKey.addEventListener('click', () => {

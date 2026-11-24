@@ -1115,6 +1115,93 @@ body, .app-header, .controls-panel, .panel-section, .preview-stage,
     66% { transform: translate(-30px, 40px) scale(0.94); }
 }
 
+.theme-select {
+    width: auto;
+    min-width: 126px;
+    padding: 7px 30px 7px 10px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+:root[data-theme="nebula-dark"] {
+    color-scheme: dark;
+    --bg-primary: #0c0914;
+    --bg-secondary: #151020;
+    --bg-tertiary: #1e1730;
+    --bg-elevated: #2a2040;
+    --bg-input: #120d1d;
+    --border: #34294b;
+    --border-strong: #4c3c6b;
+    --text-primary: #f5f2ff;
+    --text-secondary: #b8add0;
+    --text-tertiary: #7f739b;
+    --accent: #a78bfa;
+    --accent-hover: #8b5cf6;
+    --accent-soft: rgba(167, 139, 250, 0.15);
+    --accent-glow: rgba(139, 92, 246, 0.35);
+    --accent-secondary: #22d3ee;
+    --success: #34d399;
+    --warning: #fbbf24;
+    --error: #fb7185;
+    --gradient-accent: linear-gradient(135deg, #8b5cf6 0%, #22d3ee 100%);
+    --gradient-bg: radial-gradient(circle at 0% 0%, rgba(139, 92, 246, 0.12) 0%, transparent 52%),
+                   radial-gradient(circle at 100% 100%, rgba(34, 211, 238, 0.08) 0%, transparent 50%);
+}
+
+:root[data-theme="nebula-light"] {
+    color-scheme: light;
+    --bg-primary: #f7f5fc;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #eee9f8;
+    --bg-elevated: #e2d9f3;
+    --bg-input: #ffffff;
+    --border: #dcd3eb;
+    --border-strong: #b8a9d2;
+    --text-primary: #251c35;
+    --text-secondary: #56496d;
+    --text-tertiary: #8b7fa1;
+    --accent: #7c3aed;
+    --accent-hover: #6d28d9;
+    --accent-soft: rgba(124, 58, 237, 0.10);
+    --accent-glow: rgba(124, 58, 237, 0.20);
+    --accent-secondary: #0891b2;
+    --success: #059669;
+    --warning: #d97706;
+    --error: #e11d48;
+    --gradient-accent: linear-gradient(135deg, #7c3aed 0%, #0891b2 100%);
+    --gradient-bg: radial-gradient(circle at 0% 0%, rgba(124, 58, 237, 0.06) 0%, transparent 52%),
+                   radial-gradient(circle at 100% 100%, rgba(8, 145, 178, 0.05) 0%, transparent 50%);
+}
+
+:root[data-theme="aurora-dark"] { color-scheme: dark; }
+:root[data-theme="aurora-light"] { color-scheme: light; }
+
+::selection { background: var(--accent); color: #fff; }
+.app-header { gap: 14px; flex-wrap: wrap; }
+.header-actions { flex-wrap: wrap; justify-content: flex-end; }
+.panel-section {
+    background: linear-gradient(145deg, var(--bg-tertiary), color-mix(in srgb, var(--bg-tertiary) 88%, var(--accent) 4%));
+}
+.preview-stage { box-shadow: inset 0 1px 0 rgba(255,255,255,.025), var(--shadow-sm); }
+button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+
+@media (max-width: 640px) {
+    .theme-select { min-width: 108px; }
+    .api-key-input { width: 124px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+    }
+}
+
 :root[data-theme="aurora-dark"] .icon-moon { display: block; }
 :root[data-theme="aurora-dark"] .icon-sun  { display: none; }
 :root[data-theme="aurora-light"] .icon-moon { display: none; }
@@ -2923,7 +3010,13 @@ body, .app-header, .controls-panel, .panel-section, .preview-stage,
                 <path d="M7 6h10M6.5 8l5 8M17.5 8l-5 8"></path>
             </svg>
         </a>
-        <button class="icon-button" id="themeToggle" title="Toggle theme" aria-label="Toggle theme">
+        <select id="themeSelect" class="theme-select" aria-label="Color theme" title="Color theme">
+            <option value="aurora-dark">Aurora · Dark</option>
+            <option value="aurora-light">Aurora · Light</option>
+            <option value="nebula-dark">Nebula · Dark</option>
+            <option value="nebula-light">Nebula · Light</option>
+        </select>
+        <button class="icon-button" id="themeToggle" title="Toggle light or dark mode" aria-label="Toggle light or dark mode">
             <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
             </svg>
@@ -3301,6 +3394,12 @@ const SETTINGS_KEY        = 'oig_settings_v1';
 const THEME_KEY           = 'oig_theme_v1';
 const FAVORITES_KEY       = 'oig_favorites_v1';
 const MAX_HISTORY_ITEMS   = 24;
+const THEME_METADATA = {
+    'aurora-dark': { label: 'Aurora Dark', partner: 'aurora-light' },
+    'aurora-light': { label: 'Aurora Light', partner: 'aurora-dark' },
+    'nebula-dark': { label: 'Nebula Dark', partner: 'nebula-light' },
+    'nebula-light': { label: 'Nebula Light', partner: 'nebula-dark' }
+};
 
 const TEMPLATE_ICONS = {
     camera: '<circle cx="12" cy="13" r="4"/><path d="M4 7h3l2-3h6l2 3h3v13H4V7Z"/>',
@@ -3375,7 +3474,7 @@ function cacheDom() {
         'galleryGrid', 'clearHistoryBtn', 'gallerySearch', 'galleryStats',
         'favFilter', 'favCount',
         'infoBtn', 'infoModal', 'infoClose', 'infoBody',
-        'themeToggle', 'shortcutsBtn', 'shortcutsModal', 'shortcutsClose',
+        'themeToggle', 'themeSelect', 'shortcutsBtn', 'shortcutsModal', 'shortcutsClose',
         'templatesRow', 'surpriseBtn',
         'lightboxOverlay', 'lightboxImage', 'lightboxClose',
         'lightboxPrev', 'lightboxNext', 'lightboxCounter',
@@ -4446,6 +4545,14 @@ function bindEvents() {
 
     // Theme toggle
     els.themeToggle.addEventListener('click', toggleTheme);
+    els.themeSelect.addEventListener('change', () => applyTheme(els.themeSelect.value, true, true));
+    window.addEventListener('storage', event => {
+        if (event.key === THEME_KEY) {
+            let theme = null;
+            try { theme = event.newValue ? JSON.parse(event.newValue) : null; } catch {}
+            if (THEME_METADATA[theme]) applyTheme(theme, false, false);
+        }
+    });
 
     // Shortcuts modal
     els.shortcutsBtn.addEventListener('click', showShortcutsModal);
@@ -4612,24 +4719,39 @@ function bindEvents() {
 // ============================================================================
 // Theme Management
 // ============================================================================
+function applyTheme(theme, persist = true, notify = false) {
+    if (!THEME_METADATA[theme]) return;
+    document.documentElement.setAttribute('data-theme', theme);
+    if (persist) saveStorage(THEME_KEY, theme);
+    updateThemeIcon(theme);
+    if (notify) showThemeToast(theme);
+}
+
+function showThemeToast(theme) {
+    if (els.toastContainer) showToast(`${THEME_METADATA[theme].label} theme applied`, 'info', 1500);
+}
+
 function initTheme() {
-    const saved = loadStorage(THEME_KEY, 'aurora-dark');
-    document.documentElement.setAttribute('data-theme', saved);
-    updateThemeIcon(saved);
+    let saved = loadStorage(THEME_KEY, null);
+    if (!THEME_METADATA[saved]) {
+        const prefersLight = window.matchMedia?.('(prefers-color-scheme: light)').matches;
+        saved = prefersLight ? 'aurora-light' : 'aurora-dark';
+    }
+    applyTheme(saved, false, false);
 }
 
 function toggleTheme() {
     const current = document.documentElement.getAttribute('data-theme') || 'aurora-dark';
-    const next = current === 'aurora-dark' ? 'aurora-light' : 'aurora-dark';
-    document.documentElement.setAttribute('data-theme', next);
-    saveStorage(THEME_KEY, next);
-    updateThemeIcon(next);
-    showToast(`Switched to ${next === 'aurora-dark' ? 'dark' : 'light'} theme`, 'info', 1500);
+    applyTheme(THEME_METADATA[current]?.partner || 'aurora-dark', true, true);
 }
 
 function updateThemeIcon(theme) {
-    if (!els.themeToggle) return;
-    els.themeToggle.title = theme === 'aurora-dark' ? 'Switch to light theme' : 'Switch to dark theme';
+    const metadata = THEME_METADATA[theme];
+    if (els.themeSelect) els.themeSelect.value = theme;
+    if (!els.themeToggle || !metadata) return;
+    const label = `Switch to ${THEME_METADATA[metadata.partner].label}`;
+    els.themeToggle.title = label;
+    els.themeToggle.setAttribute('aria-label', label);
 }
 
 // ============================================================================
