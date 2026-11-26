@@ -10,7 +10,8 @@ import pytest
 from pydantic import ValidationError
 
 from openimagegen.schemas import (
-    ImageGenerationRequest, JobStatus, JobSubmissionResponse,
+    ImageGenerationRequest, InpaintingRequest, JobStatus, JobSubmissionResponse,
+    OutpaintingRequest,
 )
 
 

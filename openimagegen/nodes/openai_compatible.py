@@ -118,6 +118,87 @@ def _content_text(content: Any) -> str:
         )
     raise ValueError("The server response did not contain textual message content.")
 
+
+def chat_completion(
+    base_url: str,
+    model: str,
+    messages: list[dict[str, str]],
+    *,
+    api_key_env: str | None = "OPENAI_API_KEY",
+    timeout_seconds: int = 60,
+    verify_ssl: bool = True,
+    temperature: float = 0.7,
+    max_tokens: int = 512,
+) -> str:
+    """Send a single chat completion to an OpenAI-compatible endpoint.
+
+    Reuses the node's URL validation, redirect blocking, TLS handling, and
+    response-size limits so server-configured settings cannot be abused to
+    reach metadata endpoints or follow redirects into internal networks.
+    """
+    if not str(model).strip():
+        raise ValueError("A remote model name is required.")
+    if not messages:
+        raise ValueError("At least one chat message is required.")
+
+    endpoint, uses_tls = _endpoint(str(base_url))
+    auth_params: Dict[str, Any] = (
+        {"auth_mode": "environment", "env_var": api_key_env}
+        if api_key_env
+        else {"auth_mode": "none"}
+    )
+    api_key = _resolve_api_key(auth_params)
+
+    payload = {
+        "model": str(model).strip(),
+        "messages": messages,
+        "temperature": float(temperature),
+        "max_tokens": int(max_tokens),
+        "stream": False,
+    }
+    headers = {"Content-Type": "application/json", "Accept": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    request = Request(
+        endpoint,
+        data=json.dumps(payload).encode("utf-8"),
+        headers=headers,
+        method="POST",
+    )
+
+    from urllib.request import HTTPSHandler
+
+    handlers: list[Any] = [_NoRedirects()]
+    if uses_tls:
+        context = (
+            ssl.create_default_context() if verify_ssl else ssl._create_unverified_context()
+        )
+        handlers.append(HTTPSHandler(context=context))
+    opener = build_opener(*handlers)
+    timeout = max(1, min(600, int(timeout_seconds)))
+
+    try:
+        with opener.open(request, timeout=timeout) as response:
+            raw = response.read(MAX_RESPONSE_BYTES + 1)
+    except HTTPError as error:
+        detail = error.read(4096).decode("utf-8", errors="replace")
+        raise RuntimeError(f"Prompt LLM returned HTTP {error.code}: {detail}") from error
+    except URLError as error:
+        raise RuntimeError(f"Could not reach prompt LLM: {error.reason}") from error
+    except (TimeoutError, socket.timeout) as error:
+        raise RuntimeError(f"Prompt LLM timed out after {timeout} seconds.") from error
+    if len(raw) > MAX_RESPONSE_BYTES:
+        raise RuntimeError("Prompt LLM response exceeded the 2 MiB safety limit.")
+    try:
+        data = json.loads(raw)
+        content = data["choices"][0]["message"]["content"]
+        text = _content_text(content).strip()
+    except (json.JSONDecodeError, KeyError, IndexError, TypeError) as error:
+        raise ValueError("Prompt LLM returned an invalid chat-completion response.") from error
+    if not text:
+        raise ValueError("Prompt LLM returned an empty response.")
+    return text
+
 @get_node_registry().register
 class OpenAICompatibleNode(BaseWorkflowNode):
     """Produce text without exposing remote credentials to the browser response or job history."""

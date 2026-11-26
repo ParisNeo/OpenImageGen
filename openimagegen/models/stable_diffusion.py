@@ -110,6 +110,53 @@ class StableDiffusionAdapter(BaseModelAdapter):
     def supports_img2img(self) -> bool:
         return True
 
+    def supports_inpainting(self) -> bool:
+        return True
+
+    def generate_inpainting(
+        self,
+        pipeline: Any,
+        prompt: str,
+        init_image: Image.Image,
+        mask_image: Image.Image,
+        negative_prompt: Optional[str] = None,
+        strength: float = 0.85,
+        height: Optional[int] = None,
+        width: Optional[int] = None,
+        num_inference_steps: int = 50,
+        guidance_scale: float = 7.5,
+        num_images_per_prompt: int = 1,
+        generator: Optional[Any] = None,
+        callback: Optional[Any] = None,
+        callback_steps: int = 1,
+        **extra: Any,
+    ) -> List[Image.Image]:
+        from diffusers import StableDiffusionInpaintPipeline
+        # SD 1.5 ships with a 9-channel inpainting UNet (sd-v1-5-inpainting) that
+        # shares weights incompatibly with the standard UNet. When the loaded
+        # checkpoint does not include inpaint UNet weights, Diffusers still lets
+        # us construct the inpaint pipeline from the shared components, at the
+        # cost of lower quality because the mask is only enforced through the
+        # VAE-encoded latent space. Documented behaviour, not silent fallback.
+        inpaint_pipe = StableDiffusionInpaintPipeline(**pipeline.components)
+        kwargs = {
+            "prompt": prompt,
+            "image": init_image,
+            "mask_image": mask_image,
+            "negative_prompt": negative_prompt,
+            "strength": strength,
+            "height": height,
+            "width": width,
+            "num_inference_steps": num_inference_steps,
+            "guidance_scale": guidance_scale,
+            "num_images_per_prompt": num_images_per_prompt,
+            "generator": generator,
+            "callback": callback,
+            "callback_steps": callback_steps,
+        }
+        kwargs = {k: v for k, v in kwargs.items() if v is not None}
+        return inpaint_pipe(**kwargs).images
+
     def generate_img2img(
         self,
         pipeline: Any,

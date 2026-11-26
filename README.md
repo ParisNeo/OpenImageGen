@@ -14,6 +14,10 @@ Open source image generation API using various diffusion models via the `diffuse
 
 ## Features
 
+- **Inpainting & outpainting** — paint a mask canvas to regenerate regions, or
+  expand images outward with automatic edge-aware composition (SD 1.x family).
+
+
 - 🎨 Generate images from text prompts using state-of-the-art diffusion models.
 - 🔄 Support for multiple models (Stable Diffusion, SDXL, Kandinsky, etc.).
 - ⚙️ Configurable via `config.toml` with flexible search paths.

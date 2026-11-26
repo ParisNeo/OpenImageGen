@@ -109,9 +109,34 @@ class BaseModelAdapter(ABC):
         """Return True if this adapter supports image-to-image generation."""
         return False
 
+    def supports_inpainting(self) -> bool:
+        """Return True if this adapter supports mask-guided inpainting."""
+        return False
+
     def supports_lora(self) -> bool:
         """Whether the underlying diffusers pipeline implements LoRA hooks."""
         return True
+
+    def generate_inpainting(
+        self,
+        pipeline: Any,
+        prompt: str,
+        init_image: Image.Image,
+        mask_image: Image.Image,
+        negative_prompt: Optional[str] = None,
+        strength: float = 0.85,
+        height: Optional[int] = None,
+        width: Optional[int] = None,
+        num_inference_steps: int = 50,
+        guidance_scale: float = 7.5,
+        num_images_per_prompt: int = 1,
+        generator: Optional[Any] = None,
+        callback: Optional[Any] = None,
+        callback_steps: int = 1,
+        **extra: Any,
+    ) -> List[Image.Image]:
+        """Generate images with a mask. Override in subclasses that support inpainting."""
+        raise NotImplementedError(f"{self.type_name} does not support inpainting.")
 
     def generate_img2img(
         self,

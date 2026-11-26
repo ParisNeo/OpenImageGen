@@ -1535,7 +1535,52 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 }
 .fav-filter.active { color: var(--warning); border-color: var(--warning); background: rgba(245, 158, 11, 0.1); }
 .fav-filter:hover { border-color: var(--border-strong); }
-.ui-icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15em; flex-shrink: 0; }
+
+/* ==========================================================================
+   Mask editor (inpainting)
+.mask-editor {
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    cursor: crosshair;
+    touch-action: none;
+}
+.mask-editor canvas { display: block; width: 100%; height: auto; user-select: none; }
+.mask-editor.empty::after {
+    content: 'Upload an image first';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    background: var(--bg-input);
+    pointer-events: none;
+}
+.mask-toolbar {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    padding: 6px;
+    background: var(--bg-tertiary);
+    border-top: 1px solid var(--border);
+}
+.mask-toolbar .btn-mini { height: 28px; width: 28px; }
+.mask-toolbar .btn-mini.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-color: var(--accent);
+}
+.mask-hint {
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    line-height: 1.4;
+}
+
 .logo-mark {
     width: 36px;
     height: 36px;
@@ -3065,6 +3110,8 @@ body, .app-header, .controls-panel, .panel-section, .preview-stage,
                 <div class="mode-toggle" id="modeToggle">
                     <button type="button" class="mode-toggle-btn active" data-mode="text2img"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 5 4 4M4 20l4-1 11-11a2.8 2.8 0 0 0-4-4L4 15v5Z"/></svg> Text → Image</button>
                     <button type="button" class="mode-toggle-btn" data-mode="img2img"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg> Image → Image</button>
+                    <button type="button" class="mode-toggle-btn" data-mode="inpaint" title="Mask-guided editing"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="5"/></svg> Inpaint</button>
+                    <button type="button" class="mode-toggle-btn" data-mode="outpaint" title="Expand canvas outward"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="8" height="8"/><path d="M3 3h18v18H3zM3 8h5M3 16h5M16 3v5M16 16v5M8 3v5M8 16v5"/></svg> Outpaint</button>
                 </div>
                 <div class="form-group" id="uploadGroup" style="display:none;">
                     <div class="upload-zone" id="uploadZone">
@@ -3077,6 +3124,44 @@ body, .app-header, .controls-panel, .panel-section, .preview-stage,
                         <button type="button" class="upload-clear" id="uploadClear" style="display:none;">✕</button>
                     </div>
                 </div>
+                <div class="form-group" id="inpaintGroup" style="display:none;">
+                    <label class="form-label">
+                        <span>Mask</span>
+                        <span class="hint">Paint white where you want changes</span>
+                    </label>
+                    <div class="mask-editor" id="maskEditor">
+                        <canvas id="maskCanvas" width="512" height="512" aria-label="Mask painter"></canvas>
+                        <div class="mask-toolbar">
+                            <button type="button" class="btn-mini" id="maskBrushBtn" title="Brush" data-tool="brush">🖌</button>
+                            <button type="button" class="btn-mini" id="maskEraserBtn" title="Eraser" data-tool="eraser">🧽</button>
+                            <button type="button" class="btn-mini" id="maskClearBtn" title="Clear mask">✕</button>
+                            <button type="button" class="btn-mini" id="maskInvertBtn" title="Invert mask">◐</button>
+                            <input type="range" id="maskBrushSize" class="slider-mini" min="4" max="80" value="24" title="Brush size" style="flex:1">
+                        </div>
+                    </div>
+                    <p class="mask-hint">White regions are regenerated. Black regions preserve the source image.</p>
+                </div>
+                <div class="form-group" id="outpaintGroup" style="display:none;">
+                    <label class="form-label"><span>Expand outward</span><span class="hint">px added per side</span></label>
+                    <div class="dim-row" style="grid-template-columns:1fr 1fr;gap:8px;">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label" for="expandLeft">Left</label>
+                            <input type="number" id="expandLeft" min="0" max="1024" step="8" value="128">
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label" for="expandRight">Right</label>
+                            <input type="number" id="expandRight" min="0" max="1024" step="8" value="128">
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label" for="expandTop">Top</label>
+                            <input type="number" id="expandTop" min="0" max="1024" step="8" value="128">
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label" for="expandBottom">Bottom</label>
+                            <input type="number" id="expandBottom" min="0" max="1024" step="8" value="128">
+                        </div>
+                    </div>
+                </div>
                 <div class="form-group">
                     <label class="form-label" for="prompt">
                         <span>Prompt</span>
@@ -3084,6 +3169,9 @@ body, .app-header, .controls-panel, .panel-section, .preview-stage,
                     </label>
                     <textarea id="prompt" placeholder="A photorealistic portrait of a cyberpunk cat, neon lights, detailed, 8k"
                               rows="3" required></textarea>
+                    <button type="button" class="surprise-btn" id="enhanceBtn" style="display:none;margin-top:6px;">
+                        ✨ Auto-enhance prompt
+                    </button>
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="negative_prompt">Negative prompt</label>
@@ -3305,6 +3393,43 @@ body, .app-header, .controls-panel, .panel-section, .preview-stage,
     </div>
 </div>
 
+<div class="modal-overlay" id="enhanceModal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="enhanceTitle">
+    <div class="modal" role="document" style="max-width:640px;">
+        <div class="modal-header">
+            <h2 id="enhanceTitle">Review enhanced prompt</h2>
+            <button class="modal-close" id="enhanceClose" aria-label="Close">✕</button>
+        </div>
+        <div class="modal-body">
+            <p style="color:var(--text-secondary);margin-bottom:14px;">
+                Edit the suggestion before applying it. Your original prompt
+                is preserved in the form until you click <strong>Apply</strong>.
+            </p>
+            <div class="form-group">
+                <label class="form-label" for="enhancePromptField">
+                    <span>Enhanced prompt</span>
+                    <span class="hint">Positive</span>
+                </label>
+                <textarea id="enhancePromptField" rows="6" spellcheck="true"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="enhanceNegativeField">
+                    <span>Negative prompt</span>
+                    <span class="hint">Optional</span>
+                </label>
+                <textarea id="enhanceNegativeField" rows="3" spellcheck="true"></textarea>
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
+                <button type="button" class="retry-btn" id="enhanceCancel" style="background:var(--bg-tertiary);border-color:var(--border);color:var(--text-secondary);">
+                    Cancel
+                </button>
+                <button type="button" class="retry-btn" id="enhanceApply">
+                    Apply
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal-overlay" id="ggufModal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="ggufTitle">
     <div class="modal" role="document" style="max-width:680px;">
         <div class="modal-header">
@@ -3443,8 +3568,13 @@ const state = {
     contextMenuItem: null,
     generationMode: 'text2img',
     initImageId: null,
+    maskImageId: null,
+    maskTool: 'brush',
+    maskPainted: false,
     favorites: [],
-    showFavoritesOnly: false
+    showFavoritesOnly: false,
+    enhancing: false,
+    enhanceOriginal: null
 };
 
 // ============================================================================
@@ -3460,6 +3590,9 @@ function cacheDom() {
         'model_name', 'modelInfo',
         'modeToggle', 'uploadGroup', 'uploadZone', 'initImageInput',
         'uploadPlaceholder', 'uploadPreview', 'uploadClear',
+        'inpaintGroup', 'maskEditor', 'maskCanvas',
+        'maskBrushBtn', 'maskEraserBtn', 'maskClearBtn', 'maskInvertBtn', 'maskBrushSize',
+        'outpaintGroup', 'expandLeft', 'expandRight', 'expandTop', 'expandBottom',
         'width', 'height', 'dimensionPresets',
         'steps', 'stepsSlider', 'guidance_scale', 'guidanceSlider',
         'qualityPreset', 'sampler', 'num_images_per_prompt', 'seed',
@@ -3474,6 +3607,8 @@ function cacheDom() {
         'galleryGrid', 'clearHistoryBtn', 'gallerySearch', 'galleryStats',
         'favFilter', 'favCount',
         'infoBtn', 'infoModal', 'infoClose', 'infoBody',
+        'enhanceBtn', 'enhanceModal', 'enhanceClose', 'enhanceCancel', 'enhanceApply',
+        'enhancePromptField', 'enhanceNegativeField',
         'themeToggle', 'themeSelect', 'shortcutsBtn', 'shortcutsModal', 'shortcutsClose',
         'templatesRow', 'surpriseBtn',
         'lightboxOverlay', 'lightboxImage', 'lightboxClose',
@@ -3621,6 +3756,16 @@ async function checkHealth() {
         // If loading/downloading state changed, refresh models list to update status
         if (wasLoading !== data.is_loading_models || wasDownloading !== data.is_downloading_models || (state.models.length === 0 && modelCount > 0)) {
             await loadModels();
+        }
+
+        const llmInfo = data.prompt_enhancement;
+        if (els.enhanceBtn) {
+            els.enhanceBtn.style.display = (llmInfo && llmInfo.enabled) ? 'flex' : 'none';
+            if (llmInfo && llmInfo.model) {
+                els.enhanceBtn.title = `Rewrite with ${llmInfo.model} before generating`;
+            } else {
+                els.enhanceBtn.title = 'Rewrite the current prompt with the configured LLM';
+            }
         }
         return true;
     } catch (e) {
@@ -3788,6 +3933,10 @@ function updateModelInfo() {
             <span>${supportsI2I ? 'Supported' : 'Not supported'}</span>
         </div>
         <div class="model-info-row">
+            <span class="model-info-label">Inpainting</span>
+            <span>${modelData?.supports_inpainting ? 'Supported' : 'Not supported'}</span>
+        </div>
+        <div class="model-info-row">
             <span class="model-info-label">Status</span>
             <span>${statusBadge}</span>
         </div>
@@ -3798,6 +3947,76 @@ function updateModelInfo() {
 
 function updatePromptCount() {
     els.promptCount.textContent = els.prompt.value.length;
+}
+
+async function enhancePrompt() {
+    if (state.enhancing) return;
+    const prompt = els.prompt.value.trim();
+    if (!prompt) {
+        showToast('Enter a prompt first', 'error');
+        els.prompt.focus();
+        return;
+    }
+    const originalPrompt = els.prompt.value;
+    const negative = els.negative_prompt.value.trim();
+    const selectedModel = selectedModel();
+    state.enhancing = true;
+    const label = els.enhanceBtn?.textContent;
+    if (els.enhanceBtn) {
+        els.enhanceBtn.disabled = true;
+        els.enhanceBtn.textContent = 'Enhancing…';
+    }
+    try {
+        const result = await apiPost('/v1/prompt/enhance', {
+            prompt,
+            negative_prompt: negative || null,
+            model_name: selectedModel?.key || null
+        });
+        openEnhanceReview(result, originalPrompt);
+    } catch (error) {
+        showToast('Prompt enhancement failed: ' + error.message, 'error', 7000);
+    } finally {
+        state.enhancing = false;
+        if (els.enhanceBtn) {
+            els.enhanceBtn.disabled = false;
+            els.enhanceBtn.textContent = label || '✨ Auto-enhance prompt';
+        }
+    }
+}
+
+function openEnhanceReview(result, originalPrompt) {
+    state.enhanceOriginal = originalPrompt;
+    const supportsNegative = selectedModel()?.supports_negative_prompt !== false;
+    els.enhancePromptField.value = (result?.prompt || '').trim();
+    els.enhanceNegativeField.value = supportsNegative ? (result?.negative_prompt || '') : '';
+    els.enhanceNegativeField.disabled = !supportsNegative;
+    els.enhanceModal.style.display = 'flex';
+    els.enhancePromptField.focus();
+    els.enhancePromptField.setSelectionRange(
+        els.enhancePromptField.value.length,
+        els.enhancePromptField.value.length
+    );
+}
+
+function closeEnhanceReview() {
+    els.enhanceModal.style.display = 'none';
+    state.enhanceOriginal = null;
+}
+
+function applyEnhancement() {
+    const enhanced = els.enhancePromptField.value.trim();
+    if (!enhanced) {
+        showToast('Enhanced prompt is empty', 'error', 3000);
+        return;
+    }
+    els.prompt.value = enhanced;
+    els.negative_prompt.value = els.enhanceNegativeField.disabled
+        ? els.negative_prompt.value
+        : els.enhanceNegativeField.value.trim();
+    updatePromptCount();
+    saveCurrentSettings();
+    closeEnhanceReview();
+    showToast('Enhanced prompt applied', 'success', 2000);
 }
 
 function gatherFormData() {
@@ -3828,7 +4047,7 @@ function gatherFormData() {
     const seed = parseInt(els.seed.value, 10);
     if (!Number.isNaN(seed) && seed >= 0) data.seed = seed;
 
-    if (state.generationMode === 'img2img') {
+    if (state.generationMode === 'img2img' || state.generationMode === 'inpaint' || state.generationMode === 'outpaint') {
         if (!state.initImageId) {
             showToast('Please upload an init image', 'error');
             return null;
@@ -3837,7 +4056,36 @@ function gatherFormData() {
         const strength = parseFloat(els.strength.value);
         if (strength && strength > 0 && strength <= 1.0) data.strength = strength;
     }
+    if (state.generationMode === 'outpaint') {
+        data.expand_left = parseInt(els.expandLeft.value, 10) || 0;
+        data.expand_right = parseInt(els.expandRight.value, 10) || 0;
+        data.expand_top = parseInt(els.expandTop.value, 10) || 0;
+        data.expand_bottom = parseInt(els.expandBottom.value, 10) || 0;
+        if (data.expand_left + data.expand_right + data.expand_top + data.expand_bottom === 0) {
+            showToast('Set at least one expansion direction', 'error');
+            return null;
+        }
+    }
+    return data;
+}
 
+async function gatherFormDataAsync() {
+    const data = gatherFormData();
+    if (!data) return null;
+    if (state.generationMode === 'inpaint') {
+        if (!state.maskPainted) {
+            showToast('Paint a mask first', 'error');
+            return null;
+        }
+        try {
+            const maskId = await uploadCurrentMask();
+            if (!maskId) throw new Error('Mask upload returned no id.');
+            data.mask_image_id = maskId;
+        } catch (err) {
+            showToast('Mask upload failed: ' + err.message, 'error');
+            return null;
+        }
+    }
     return data;
 }
 
@@ -3855,7 +4103,11 @@ function saveCurrentSettings() {
         num_images_per_prompt: els.num_images_per_prompt.value,
         seed: els.seed.value,
         generationMode: state.generationMode,
-        strength: els.strength ? els.strength.value : '0.75'
+        strength: els.strength ? els.strength.value : '0.75',
+        expandLeft: els.expandLeft?.value,
+        expandRight: els.expandRight?.value,
+        expandTop: els.expandTop?.value,
+        expandBottom: els.expandBottom?.value,
     };
     saveStorage(SETTINGS_KEY, state.settings);
 }
@@ -3885,6 +4137,10 @@ function applySettingsToForm() {
     if (s.sampler) els.sampler.value = s.sampler;
     if (s.num_images_per_prompt)            els.num_images_per_prompt.value = s.num_images_per_prompt;
     if (s.seed !== undefined && s.seed !== null && s.seed !== '') els.seed.value = s.seed;
+    if (s.expandLeft !== undefined && els.expandLeft)   els.expandLeft.value = s.expandLeft;
+    if (s.expandRight !== undefined && els.expandRight) els.expandRight.value = s.expandRight;
+    if (s.expandTop !== undefined && els.expandTop)     els.expandTop.value = s.expandTop;
+    if (s.expandBottom !== undefined && els.expandBottom) els.expandBottom.value = s.expandBottom;
     updatePromptCount();
 }
 
@@ -4132,9 +4388,17 @@ function switchMode(mode) {
     els.modeToggle.querySelectorAll('.mode-toggle-btn').forEach(b => {
         b.classList.toggle('active', b.dataset.mode === mode);
     });
+    const needsUpload = mode !== 'text2img';
     const isImg2img = mode === 'img2img';
-    els.uploadGroup.style.display = isImg2img ? 'block' : 'none';
-    els.strengthGroup.style.display = isImg2img ? 'block' : 'none';
+    const isInpaint = mode === 'inpaint';
+    const isOutpaint = mode === 'outpaint';
+    els.uploadGroup.style.display = needsUpload ? 'block' : 'none';
+    els.strengthGroup.style.display = (isImg2img || isInpaint || isOutpaint) ? 'block' : 'none';
+    els.inpaintGroup.style.display = isInpaint ? 'block' : 'none';
+    els.outpaintGroup.style.display = isOutpaint ? 'block' : 'none';
+    if (isInpaint) {
+        refreshMaskCanvasFromUpload();
+    }
     saveCurrentSettings();
 }
 
@@ -4186,6 +4450,172 @@ function clearUpload() {
 }
 
 // ============================================================================
+// Mask editor (inpainting)
+// ============================================================================
+let maskDrawing = false;
+let maskLastPoint = null;
+
+function refreshMaskCanvasFromUpload() {
+    const canvas = els.maskCanvas;
+    if (!canvas) return;
+    const img = els.uploadPreview;
+    if (!img || !img.src || img.style.display === 'none' || !img.complete) {
+        els.maskEditor.classList.add('empty');
+        return;
+    }
+    // Only resize when the uploaded image has changed (avoid erasing paint on
+    // every mode toggle within the same source image).
+    const targetW = Math.min(1024, img.naturalWidth || 512);
+    const targetH = Math.round(targetW * ((img.naturalHeight || 512) / (img.naturalWidth || 512)));
+    if (canvas.width === targetW && canvas.height === targetH && !els.maskEditor.classList.contains('empty')) {
+        return;
+    }
+    canvas.width = targetW;
+    canvas.height = targetH;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, targetW, targetH);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, targetW, targetH);
+    state.maskPainted = false;
+    state.maskImageId = null;
+    els.maskEditor.classList.remove('empty');
+}
+
+function maskCanvasPoint(event) {
+    const canvas = els.maskCanvas;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    return {
+        x: (event.clientX - rect.left) * scaleX,
+        y: (event.clientY - rect.top) * scaleY
+    };
+}
+
+function paintMaskAt(point) {
+    const canvas = els.maskCanvas;
+    const ctx = canvas.getContext('2d');
+    const size = parseInt(els.maskBrushSize.value, 10) || 24;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    if (state.maskTool === 'eraser') {
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.strokeStyle = '#000';
+        ctx.fillStyle = '#000';
+    } else {
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.strokeStyle = '#fff';
+        ctx.fillStyle = '#fff';
+    }
+    if (maskLastPoint) {
+        ctx.lineWidth = size;
+        ctx.beginPath();
+        ctx.moveTo(maskLastPoint.x, maskLastPoint.y);
+        ctx.lineTo(point.x, point.y);
+        ctx.stroke();
+    } else {
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, size / 2, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    maskLastPoint = point;
+    state.maskPainted = true;
+}
+
+function bindMaskEditor() {
+    const canvas = els.maskCanvas;
+    if (!canvas) return;
+
+    ['maskBrushBtn', 'maskEraserBtn'].forEach(id => {
+        els[id]?.addEventListener('click', () => {
+            state.maskTool = els[id].dataset.tool || 'brush';
+            els.maskBrushBtn.classList.toggle('active', state.maskTool === 'brush');
+            els.maskEraserBtn.classList.toggle('active', state.maskTool === 'eraser');
+        });
+    });
+    els.maskBrushBtn.classList.add('active');
+
+    els.maskClearBtn?.addEventListener('click', () => {
+        const ctx = canvas.getContext('2d');
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        state.maskPainted = false;
+        state.maskImageId = null;
+    });
+
+    els.maskInvertBtn?.addEventListener('click', () => {
+        const ctx = canvas.getContext('2d');
+        const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        for (let i = 0; i < data.data.length; i += 4) {
+            const v = data.data[i];
+            data.data[i] = 255 - v;
+            data.data[i + 1] = 255 - v;
+            data.data[i + 2] = 255 - v;
+            data.data[i + 3] = 255;
+        }
+        ctx.putImageData(data, 0, 0);
+        state.maskPainted = true;
+        state.maskImageId = null;
+    });
+
+    canvas.addEventListener('pointerdown', event => {
+        if (els.maskEditor.classList.contains('empty')) return;
+        event.preventDefault();
+        canvas.setPointerCapture(event.pointerId);
+        maskDrawing = true;
+        maskLastPoint = null;
+        paintMaskAt(maskCanvasPoint(event));
+    });
+    canvas.addEventListener('pointermove', event => {
+        if (!maskDrawing) return;
+        event.preventDefault();
+        paintMaskAt(maskCanvasPoint(event));
+    });
+    const stop = event => {
+        if (!maskDrawing) return;
+        maskDrawing = false;
+        maskLastPoint = null;
+        try { canvas.releasePointerCapture(event.pointerId); } catch {}
+        // Invalidate the cached mask id — will be re-uploaded on next submit.
+        state.maskImageId = null;
+    };
+    canvas.addEventListener('pointerup', stop);
+    canvas.addEventListener('pointercancel', stop);
+    canvas.addEventListener('pointerleave', stop);
+
+    // When a new init image uploads, resize the canvas to match.
+    els.uploadPreview?.addEventListener('load', () => {
+        if (state.generationMode === 'inpaint') refreshMaskCanvasFromUpload();
+    });
+}
+
+async function uploadCurrentMask() {
+    if (!state.maskPainted) return null;
+    if (state.maskImageId) return state.maskImageId;
+
+    const canvas = els.maskCanvas;
+    // Convert the canvas (white = edit, black = keep) into a PNG blob.
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    if (!blob) throw new Error('Could not export mask.');
+
+    const form = new FormData();
+    form.append('file', blob, 'mask.png');
+    const res = await fetch('/upload_mask', {
+        method: 'POST',
+        headers: authHeaders(),
+        body: form
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
+        throw new Error(err.detail || 'Mask upload failed');
+    }
+    const data = await res.json();
+    state.maskImageId = data.mask_id;
+    return state.maskImageId;
+}
+
+// ============================================================================
 // Gallery Favorites
 // ============================================================================
 function isFavorite(jobId) {
@@ -4223,7 +4653,14 @@ async function startGeneration() {
         showToast(`'${selectedModel.key}' will download automatically before generation.`, 'info', 5000);
     }
 
-    const data = gatherFormData();
+    if (state.generationMode === 'inpaint') {
+        if (!state.maskPainted) {
+            showToast('Paint a mask first', 'error');
+            return;
+        }
+    }
+
+    const data = await gatherFormDataAsync();
     if (!data) return;
     if (!data.prompt) {
         showToast('Please enter a prompt', 'error');
@@ -4241,13 +4678,30 @@ async function startGeneration() {
             return;
         }
     }
+    if (state.generationMode === 'inpaint' || state.generationMode === 'outpaint') {
+        const modelData = state.models.find(m => m.key === data.model_name);
+        if (modelData && modelData.supports_inpainting === false) {
+            showToast(
+                `Model '${modelData.key}' does not support inpainting. ` +
+                `Use a Stable Diffusion 1.x-family model.`,
+                'error', 6000
+            );
+            return;
+        }
+    }
 
     saveCurrentSettings();
     setGenerating(true);
     setStage('processing', 'Submitting job…');
 
     try {
-        const endpoint = state.generationMode === 'img2img' ? '/submit_img2img' : '/submit';
+        const endpoint = state.generationMode === 'img2img'
+            ? '/submit_img2img'
+            : state.generationMode === 'inpaint'
+            ? '/submit_inpainting'
+            : state.generationMode === 'outpaint'
+            ? '/submit_outpainting'
+            : '/submit';
         const { job_id } = await apiPost(endpoint, data);
         state.currentJobId = job_id;
         setStage('processing', 'Queued for generation…');
@@ -4416,6 +4870,14 @@ function bindEvents() {
     });
 
     els.prompt.addEventListener('input', updatePromptCount);
+
+    els.enhanceBtn?.addEventListener('click', enhancePrompt);
+    els.enhanceClose?.addEventListener('click', closeEnhanceReview);
+    els.enhanceCancel?.addEventListener('click', closeEnhanceReview);
+    els.enhanceApply?.addEventListener('click', applyEnhancement);
+    els.enhanceModal?.addEventListener('click', (event) => {
+        if (event.target === els.enhanceModal) closeEnhanceReview();
+    });
 
     els.model_name.addEventListener('change', () => {
         updateModelInfo();
@@ -4685,6 +5147,7 @@ function bindEvents() {
 
         if (e.key === 'Escape') {
             if (els.infoModal.style.display === 'flex') closeInfoModal();
+            if (els.enhanceModal?.style.display === 'flex') closeEnhanceReview();
             if (els.shortcutsModal?.style.display === 'flex') closeShortcutsModal();
             if (els.lightboxOverlay?.classList.contains('active')) closeLightbox();
             hideContextMenu();
@@ -5000,6 +5463,7 @@ function closeShortcutsModal() {
 async function init() {
     cacheDom();
     bindEvents();
+    bindMaskEditor();
     initTheme();
     renderTemplates();
 

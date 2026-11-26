@@ -281,7 +281,14 @@ class ImageGenService:
         owner: Optional[str] = None,
     ) -> bool:
         """Schedule generation on the bounded worker pool with per-user fairness."""
-        worker = self.generate_img2img if job_type == "img2img" else self.generate_images
+        if job_type == "img2img":
+            worker = self.generate_img2img
+        elif job_type == "inpainting":
+            worker = self.generate_inpainting
+        elif job_type == "outpainting":
+            worker = self.generate_outpainting
+        else:
+            worker = self.generate_images
         return self._submit_worker(job_id, worker, request, owner)
 
     def _submit_worker(
@@ -733,6 +740,23 @@ class ImageGenService:
         image.save(filepath, "PNG")
         return filepath
 
+    def save_mask(self, mask_image: Any, mask_id: str) -> Path:
+        """Persist a single-channel mask as a greyscale PNG.
+
+        Diffusers inpaint pipelines expect an ``L`` (grayscale) mask where white
+        marks pixels to regenerate. Normalizing at save time lets the browser
+        upload any RGB image (transparent cutouts, painted canvases) and always
+        get a well-formed mask.
+        """
+        filepath = self.uploads_folder / f"mask_{mask_id}.png"
+        mask_image.convert("L").save(filepath, "PNG")
+        return filepath
+
+    def get_mask_path(self, mask_id: str) -> Optional[Path]:
+        """Return the path to a stored mask, or None if not found."""
+        filepath = self.uploads_folder / f"mask_{mask_id}.png"
+        return filepath if filepath.exists() else None
+
     def get_upload_path(self, image_id: str) -> Optional[Path]:
         """Return the path to an uploaded image, or None if not found."""
         filepath = self.uploads_folder / f"{image_id}.png"
@@ -1137,6 +1161,299 @@ class ImageGenService:
             if self.device.type == "cuda":
                 torch.cuda.empty_cache()
                 logger.debug(f"Job {job_id}: cleared CUDA cache.")
+
+    def generate_inpainting(
+        self,
+        job_id: str,
+        request: Any,
+        postprocess: Optional[List[Dict[str, Any]]] = None,
+    ) -> None:
+        """Execute inpainting using a supplied init image + mask pair."""
+        job = self.jobs.get(job_id)
+        if job is None:
+            logger.error(f"Job {job_id} missing from store at inpainting start.")
+            return
+
+        self._cancelled_jobs.discard(job_id)
+        if job.status == "cancelled":
+            return
+
+        init_image_path = self.get_upload_path(request.init_image_id)
+        mask_image_path = self.get_mask_path(request.mask_image_id)
+        if init_image_path is None or mask_image_path is None:
+            missing = []
+            if init_image_path is None:
+                missing.append(f"init image '{request.init_image_id}'")
+            if mask_image_path is None:
+                missing.append(f"mask '{request.mask_image_id}'")
+            job.status = "failed"
+            job.message = f"Missing upload(s): {', '.join(missing)}."
+            self.jobs.update(job)
+            self._notify_job_update(job_id)
+            return
+
+        try:
+            init_image = PILImage.open(init_image_path).convert("RGB")
+            mask_image = PILImage.open(mask_image_path).convert("L")
+        except Exception as error:
+            job.status = "failed"
+            job.message = f"Failed to load inpaint inputs: {error}"
+            self.jobs.update(job)
+            self._notify_job_update(job_id)
+            return
+
+        # Align mask to the resolved canvas size, then apply any explicit size.
+        if request.width or request.height:
+            target_w, target_h = self._resolve_target_size(init_image, request.width, request.height)
+            if (init_image.width, init_image.height) != (target_w, target_h):
+                init_image = init_image.resize((target_w, target_h), PILImage.Resampling.LANCZOS)
+            if (mask_image.width, mask_image.height) != (target_w, target_h):
+                mask_image = mask_image.resize((target_w, target_h), PILImage.Resampling.NEAREST)
+
+        self._run_inpaint_like(
+            job_id=job_id,
+            request=request,
+            init_image=init_image,
+            mask_image=mask_image,
+            postprocess=postprocess,
+            job_label="inpainting",
+        )
+
+    def generate_outpainting(
+        self,
+        job_id: str,
+        request: Any,
+        postprocess: Optional[List[Dict[str, Any]]] = None,
+    ) -> None:
+        """Compose an enlarged canvas and regenerate only the newly added area."""
+        job = self.jobs.get(job_id)
+        if job is None:
+            logger.error(f"Job {job_id} missing from store at outpainting start.")
+            return
+
+        self._cancelled_jobs.discard(job_id)
+        if job.status == "cancelled":
+            return
+
+        init_image_path = self.get_upload_path(request.init_image_id)
+        if init_image_path is None:
+            job.status = "failed"
+            job.message = f"Init image '{request.init_image_id}' not found."
+            self.jobs.update(job)
+            self._notify_job_update(job_id)
+            return
+
+        try:
+            source = PILImage.open(init_image_path).convert("RGB")
+        except Exception as error:
+            job.status = "failed"
+            job.message = f"Failed to load outpainting source: {error}"
+            self.jobs.update(job)
+            self._notify_job_update(job_id)
+            return
+
+        expanded_w = source.width + request.expand_left + request.expand_right
+        expanded_h = source.height + request.expand_top + request.expand_bottom
+        # Diffusers pipelines require dimensions divisible by 8.
+        expanded_w = max(64, ((expanded_w + 7) // 8) * 8)
+        expanded_h = max(64, ((expanded_h + 7) // 8) * 8)
+
+        canvas = PILImage.new("RGB", (expanded_w, expanded_h), (128, 128, 128))
+        offset_x = request.expand_left
+        offset_y = request.expand_top
+        canvas.paste(source, (offset_x, offset_y))
+
+        mask = PILImage.new("L", (expanded_w, expanded_h), 255)
+        mask.paste(PILImage.new("L", (source.width, source.height), 0), (offset_x, offset_y))
+
+        self._run_inpaint_like(
+            job_id=job_id,
+            request=request,
+            init_image=canvas,
+            mask_image=mask,
+            postprocess=postprocess,
+            job_label="outpainting",
+            forced_size=(expanded_w, expanded_h),
+        )
+
+    @staticmethod
+    def _resolve_target_size(
+        image: PILImage.Image, width: Optional[int], height: Optional[int]
+    ) -> tuple[int, int]:
+        """Return an 8-aligned target size, defaulting to the source dimensions."""
+        w = width if width else image.width
+        h = height if height else image.height
+        w = max(64, (int(w) // 8) * 8)
+        h = max(64, (int(h) // 8) * 8)
+        return w, h
+
+    def _run_inpaint_like(
+        self,
+        job_id: str,
+        request: Any,
+        init_image: PILImage.Image,
+        mask_image: PILImage.Image,
+        postprocess: Optional[List[Dict[str, Any]]],
+        job_label: str,
+        forced_size: Optional[tuple[int, int]] = None,
+    ) -> None:
+        """Shared execution path for inpainting and outpainting.
+
+        Both flows resolve the same adapter hook (``generate_inpainting``) and
+        share progress, cancellation, metadata, and error handling. Keeping the
+        shared logic here avoids two near-identical code paths drifting apart.
+        """
+        job = self.jobs.get(job_id)
+        if job is None:
+            return
+
+        job.active_node_ids = []
+        job.status = "processing"
+        job.progress = 0
+        job.message = f"Starting {job_label}..."
+        job.request_details = request
+        self.jobs.update(job)
+        self._notify_job_update(job_id)
+
+        model_key = request.model_name or self.default_model
+        if not model_key or not self.is_model_available(model_key):
+            job.status = "failed"
+            job.message = f"Model '{model_key}' is not available."
+            self.jobs.update(job)
+            self._notify_job_update(job_id)
+            return
+
+        job.message = f"Loading model '{model_key}' into memory..."
+        self.jobs.update(job)
+        self._notify_job_update(job_id)
+
+        try:
+            pipeline = self.ensure_model_loaded(model_key)
+        except Exception as error:
+            job.status = "failed"
+            job.message = f"Failed to load model '{model_key}': {error}"
+            self.jobs.update(job)
+            self._notify_job_update(job_id)
+            return
+
+        current = self.jobs.get(job_id)
+        if current is None or current.status == "cancelled":
+            return
+
+        adapter = self.adapters[model_key]
+        if not adapter.supports_inpainting():
+            job.status = "failed"
+            job.message = (
+                f"Model '{model_key}' ({adapter.type_name}) does not support inpainting. "
+                "Use a Stable Diffusion 1.x-family checkpoint or a dedicated inpainting model."
+            )
+            self.jobs.update(job)
+            self._notify_job_update(job_id)
+            return
+
+        self._configure_scheduler(pipeline, getattr(request, "sampler", None))
+        self.model_last_used[model_key] = time.time()
+
+        adapter_defaults = adapter.get_default_params()
+        merged = {**self.generation_defaults, **adapter_defaults}
+        num_inference_steps = (
+            request.num_inference_steps
+            if request.num_inference_steps is not None
+            else merged.get("num_inference_steps", 50)
+        )
+        guidance_scale = (
+            request.guidance_scale
+            if request.guidance_scale is not None
+            else merged.get("guidance_scale", 7.5)
+        )
+        num_images = (
+            request.num_images_per_prompt
+            if request.num_images_per_prompt is not None
+            else merged.get("num_images_per_prompt", 1)
+        )
+        strength = float(getattr(request, "strength", 0.85) or 0.85)
+
+        if forced_size is not None:
+            width, height = forced_size
+        else:
+            width, height = self._resolve_target_size(init_image, request.width, request.height)
+
+        effective_steps = max(int(num_inference_steps * strength), 1)
+        callback = self._build_progress_callback(job_id, effective_steps)
+
+        try:
+            actual_seed = request.seed
+            if actual_seed is not None:
+                actual_seed = int(actual_seed)
+            else:
+                actual_seed = int(torch.randint(0, 2**31 - 1, (1,)).item())
+            generator = torch.Generator(device=self.device).manual_seed(actual_seed)
+
+            start = time.time()
+            job.message = f"Generating {job_label}…"
+            self.jobs.update(job)
+
+            autocast_ctx = (
+                torch.autocast(self.device.type, dtype=self.dtype)
+                if self.device.type != "cpu"
+                else nullcontext()
+            )
+            with torch.no_grad(), autocast_ctx, self._active_loras(pipeline, adapter, request):
+                images = adapter.generate_inpainting(
+                    pipeline=pipeline,
+                    prompt=request.prompt,
+                    init_image=init_image,
+                    mask_image=mask_image,
+                    negative_prompt=request.negative_prompt,
+                    strength=strength,
+                    height=height,
+                    width=width,
+                    num_inference_steps=num_inference_steps,
+                    guidance_scale=guidance_scale,
+                    num_images_per_prompt=num_images,
+                    generator=generator,
+                    callback=callback,
+                    callback_steps=1,
+                )
+
+            if postprocess:
+                images = [apply_image_operations(image, postprocess) for image in images]
+
+            elapsed = time.time() - start
+            image_urls: List[str] = []
+            for index, image in enumerate(images):
+                filename = f"image_{job_id}_{index}.png"
+                filepath = self.output_folder / filename
+                try:
+                    self._embed_png_metadata(
+                        image, filepath, request, model_key,
+                        actual_seed, num_inference_steps, guidance_scale,
+                    )
+                    image_urls.append(f"/download/{job_id}/{index}")
+                except Exception as save_error:
+                    logger.error(f"Job {job_id}: failed to save {job_label} image {index}: {save_error}")
+
+            if image_urls:
+                job.status = "completed"
+                job.progress = 100
+                job.image_urls = image_urls
+                job.seed_used = actual_seed
+                job.message = f"Generated {len(image_urls)} {job_label} image(s) in {elapsed:.2f}s."
+            else:
+                job.status = "failed"
+                job.message = f"All {job_label} image saves failed."
+            self.jobs.update(job)
+            self._notify_job_update(job_id)
+        except Exception as error:
+            logger.error(f"Job {job_id}: {job_label} failed: {error}", exc_info=True)
+            job.status = "failed"
+            job.progress = 0
+            job.message = f"{job_label.capitalize()} failed: {error}"
+            self.jobs.update(job)
+            self._notify_job_update(job_id)
+        finally:
+            if self.device.type == "cuda":
+                torch.cuda.empty_cache()
 
     def cleanup_expired_files(self) -> int:
         """Delete expired jobs and their associated files. Returns number cleaned."""

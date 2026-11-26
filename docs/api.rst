@@ -17,6 +17,15 @@ Generation
    Submit an :class:`openimagegen.schemas.ImageToImageRequest`; its
    ``init_image_id`` must reference an existing upload.
 
+``POST /submit_inpainting``
+   Submit an :class:`openimagegen.schemas.InpaintingRequest`; both
+   ``init_image_id`` and ``mask_image_id`` must reference existing uploads.
+   Requires an adapter with ``supports_inpainting() == True``.
+
+``POST /submit_outpainting``
+   Submit an :class:`openimagegen.schemas.OutpaintingRequest`; expands the
+   source image and regenerates only the newly added area.
+
 ``POST /v1/workflows/submit``
    Validate and submit a workflow graph.
 
@@ -37,8 +46,13 @@ Images and models
 ``POST /upload``
    Upload an image and receive an unguessable ``image_id``.
 
+``POST /upload_mask``
+   Upload a mask. The file is normalised to greyscale and stored as
+   ``mask_<mask_id>.png``; returns ``mask_id`` for inpainting requests.
+
 ``GET /uploads/{image_id}``
-   Retrieve an uploaded image.
+   Retrieve an uploaded image. A leading ``mask_`` prefix routes to the mask
+   directory so a single URL pattern serves both upload types.
 
 ``GET /download/{job_id}/{image_index}``
    Retrieve a completed generated image.

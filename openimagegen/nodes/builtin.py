@@ -155,6 +155,253 @@ class Img2ImgNode(GenerationNode):
         fields=[NodeField(key="strength", label="Strength", type="number", default=.75, min=.1, max=1, step=.05), *GENERATION_FIELDS],
     )
 
+@registry.register
+class TextPrependAppendNode(BaseWorkflowNode):
+    spec = NodeSpec(
+        type="text_prepend_append", title="Wrap Text", category="Text", icon="🔤", color="#0891b2",
+        description="Add a prefix and/or suffix to a text input. Useful for consistent style and quality tokens.",
+        inputs=[NodePort(slot="text", label="text", kind="text", required=True)],
+        outputs=[NodePort(slot="text", label="text", kind="text")],
+        fields=[
+            NodeField(key="prefix", label="Prefix", type="textarea", default="", placeholder="photorealistic, "),
+            NodeField(key="suffix", label="Suffix", type="textarea", default="", placeholder=", 8k, highly detailed"),
+            NodeField(key="separator", label="Joiner", type="text", default=""),
+        ],
+    )
+
+    def execute(self, params, inputs, context):
+        prefix = str(params.get("prefix", "")).strip()
+        suffix = str(params.get("suffix", "")).strip()
+        joiner = params.get("separator", "")
+        body = str(inputs["text"]).strip()
+        parts = [part for part in (prefix, body, suffix) if part]
+        return {"text": joiner.join(parts)}
+
+
+@registry.register
+class TextReplaceNode(BaseWorkflowNode):
+    spec = NodeSpec(
+        type="text_replace", title="Find & Replace", category="Text", icon="🔍", color="#0891b2",
+        description="Replace all occurrences of one substring with another.",
+        inputs=[NodePort(slot="text", label="text", kind="text", required=True)],
+        outputs=[NodePort(slot="text", label="text", kind="text")],
+        fields=[
+            NodeField(key="find", label="Find", type="text", required=True),
+            NodeField(key="replace", label="Replace with", type="text", default=""),
+            NodeField(key="case_sensitive", label="Case sensitive", type="boolean", default=True),
+        ],
+    )
+
+    def execute(self, params, inputs, context):
+        text = str(inputs["text"])
+        needle = str(params.get("find", ""))
+        if not needle:
+            raise ValueError("Find text must not be empty.")
+        replacement = str(params.get("replace", ""))
+        if params.get("case_sensitive", True):
+            return {"text": text.replace(needle, replacement)}
+        import re
+        return {"text": re.sub(re.escape(needle), replacement, text, flags=re.IGNORECASE)}
+
+
+@registry.register
+class TextTrimNode(BaseWorkflowNode):
+    spec = NodeSpec(
+        type="text_trim", title="Clean Text", category="Text", icon="✨", color="#0891b2",
+        description="Trim whitespace and optionally collapse consecutive separators.",
+        inputs=[NodePort(slot="text", label="text", kind="text", required=True)],
+        outputs=[NodePort(slot="text", label="text", kind="text")],
+        fields=[
+            NodeField(key="collapse_commas", label="Collapse repeated commas", type="boolean", default=True),
+            NodeField(key="max_length", label="Max characters (0 = unlimited)", type="number", default=0, min=0, step=1),
+        ],
+    )
+
+    def execute(self, params, inputs, context):
+        import re
+        text = str(inputs["text"]).strip()
+        if params.get("collapse_commas", True):
+            text = re.sub(r"\s*,\s*", ", ", text)
+            text = re.sub(r"(?:,\s*)+", ", ", text).strip(", ")
+        max_length = int(params.get("max_length", 0))
+        if max_length > 0:
+            text = text[:max_length].rstrip()
+        return {"text": text}
+
+
+@registry.register
+class NumberNode(BaseWorkflowNode):
+    spec = NodeSpec(
+        type="number", title="Number", category="Value", icon="🔢", color="#64748b",
+        outputs=[NodePort(slot="number", label="number", kind="number")],
+        fields=[NodeField(key="value", label="Value", type="number", default=0, step=0.01)],
+    )
+
+    def execute(self, params, inputs, context):
+        return {"number": float(params.get("value", 0))}
+
+
+@registry.register
+class BooleanNode(BaseWorkflowNode):
+    spec = NodeSpec(
+        type="boolean", title="Boolean", category="Value", icon="☑", color="#64748b",
+        outputs=[NodePort(slot="boolean", label="boolean", kind="boolean")],
+        fields=[NodeField(key="value", label="Value", type="boolean", default=False)],
+    )
+
+    def execute(self, params, inputs, context):
+        return {"boolean": bool(params.get("value", False))}
+
+
+@registry.register
+class RandomIntNode(BaseWorkflowNode):
+    spec = NodeSpec(
+        type="random_int", title="Random Integer", category="Value", icon="🎲", color="#64748b",
+        description="Non-deterministic by design. Use -1 range to emulate an unseeded sampler.",
+        outputs=[NodePort(slot="number", label="number", kind="number")],
+        fields=[
+            NodeField(key="min", label="Minimum", type="number", default=0, step=1),
+            NodeField(key="max", label="Maximum", type="number", default=2147483646, step=1),
+        ],
+    )
+
+    def execute(self, params, inputs, context):
+        import random
+        low = int(params.get("min", 0))
+        high = int(params.get("max", 2147483646))
+        if high < low:
+            raise ValueError("Maximum must be >= minimum.")
+        return {"number": float(random.randint(low, high))}
+
+
+@registry.register
+class MathNode(BaseWorkflowNode):
+    spec = NodeSpec(
+        type="math", title="Math", category="Value", icon="🧮", color="#64748b",
+        description="Apply an arithmetic operation to two numbers. Values arriving via inputs override configured fields.",
+        inputs=[NodePort(slot="a", label="a (optional)", kind="number"),
+                NodePort(slot="b", label="b (optional)", kind="number")],
+        outputs=[NodePort(slot="number", label="result", kind="number")],
+        fields=[
+            NodeField(key="a", label="A", type="number", default=0, step=0.01),
+            NodeField(key="b", label="B", type="number", default=0, step=0.01),
+            NodeField(key="operation", label="Operation", type="select", default="add", options=[
+                {"value": "add", "label": "A + B"}, {"value": "subtract", "label": "A − B"},
+                {"value": "multiply", "label": "A × B"}, {"value": "divide", "label": "A ÷ B"},
+                {"value": "min", "label": "min(A, B)"}, {"value": "max", "label": "max(A, B)"},
+                {"value": "power", "label": "A ^ B"},
+            ]),
+        ],
+    )
+
+    def execute(self, params, inputs, context):
+        a = float(inputs.get("a", params.get("a", 0)))
+        b = float(inputs.get("b", params.get("b", 0)))
+        op = params.get("operation", "add")
+        if op == "add":
+            result = a + b
+        elif op == "subtract":
+            result = a - b
+        elif op == "multiply":
+            result = a * b
+        elif op == "divide":
+            if b == 0:
+                raise ValueError("Division by zero.")
+            result = a / b
+        elif op == "min":
+            result = min(a, b)
+        elif op == "max":
+            result = max(a, b)
+        elif op == "power":
+            result = a ** b
+        else:
+            raise ValueError(f"Unknown operation '{op}'.")
+        return {"number": float(result)}
+
+
+@registry.register
+class ParamsOverrideNode(BaseWorkflowNode):
+    spec = NodeSpec(
+        type="params_override", title="Override Params", category="Generation", icon="🧷", color="#db2777",
+        description="Merge scalar overrides into generation params, e.g. a random seed produced by Random Integer.",
+        inputs=[
+            NodePort(slot="params", label="generation params", kind="params", required=True),
+            NodePort(slot="seed", label="seed (optional)", kind="number"),
+            NodePort(slot="steps", label="steps (optional)", kind="number"),
+            NodePort(slot="guidance_scale", label="CFG (optional)", kind="number"),
+        ],
+        outputs=[NodePort(slot="params", label="generation params", kind="params")],
+        fields=[
+            NodeField(key="seed", label="Seed override", type="number", default=-1, step=1,
+                      help="Leave -1 to keep the incoming params' seed."),
+            NodeField(key="width", label="Width override", type="number", default=0, min=0, max=2048, step=8),
+            NodeField(key="height", label="Height override", type="number", default=0, min=0, max=2048, step=8),
+            NodeField(key="num_inference_steps", label="Steps override", type="number", default=0, min=0, max=200, step=1),
+        ],
+    )
+
+    def execute(self, params, inputs, context):
+        merged = dict(inputs["params"])
+        # Input-port values take precedence over configured fields.
+        seed_input = inputs.get("seed")
+        step_input = inputs.get("steps")
+        cfg_input = inputs.get("guidance_scale")
+        if seed_input is not None:
+            merged["seed"] = int(seed_input)
+        elif int(params.get("seed", -1)) >= 0:
+            merged["seed"] = int(params["seed"])
+        if step_input is not None:
+            merged["num_inference_steps"] = int(step_input)
+        elif int(params.get("num_inference_steps", 0)) > 0:
+            merged["num_inference_steps"] = int(params["num_inference_steps"])
+        if cfg_input is not None:
+            merged["guidance_scale"] = float(cfg_input)
+        if int(params.get("width", 0)) > 0:
+            merged["width"] = int(params["width"])
+        if int(params.get("height", 0)) > 0:
+            merged["height"] = int(params["height"])
+        return {"params": merged}
+
+
+@registry.register
+class JsonExtractorNode(BaseWorkflowNode):
+    spec = NodeSpec(
+        type="json_extract", title="JSON Extract", category="Value", icon="🧾", color="#64748b",
+        description="Parse a JSON document and expose numeric/boolean values, e.g. a seed emitted by an external API.",
+        inputs=[NodePort(slot="json", label="json", kind="json", required=True)],
+        outputs=[NodePort(slot="number", label="number", kind="number"),
+                NodePort(slot="text", label="text", kind="text"),
+                NodePort(slot="boolean", label="boolean", kind="boolean")],
+        fields=[NodeField(key="path", label="Dot path", type="text", default="seed",
+                          placeholder="data.0.seed", help="Use digits for array indices.")],
+    )
+
+    def execute(self, params, inputs, context):
+        import json
+        raw = inputs["json"]
+        document = json.loads(raw) if isinstance(raw, str) else raw
+        path = str(params.get("path", "")).strip()
+        if not path:
+            raise ValueError("JSON path cannot be empty.")
+        current = document
+        for segment in path.split("."):
+            if isinstance(current, list):
+                current = current[int(segment)]
+            elif isinstance(current, dict):
+                current = current[segment]
+            else:
+                raise ValueError(f"Cannot descend into {type(current).__name__} at '{segment}'.")
+        result = {"text": str(current)}
+        if isinstance(current, bool):
+            result["boolean"] = current
+        else:
+            try:
+                result["number"] = float(current)
+            except (TypeError, ValueError):
+                pass
+        return result
+
+
 class ImageTransformNode(BaseWorkflowNode):
     """Create a serializable image reference consumed after image materialization."""
 
@@ -250,6 +497,139 @@ class ImageFilterNode(ImageTransformNode):
             "operation": "filter",
             "filter": params.get("filter", "sharpen"),
             "radius": float(params.get("radius", 2)),
+        }
+
+
+@registry.register
+class ImageCropNode(ImageTransformNode):
+    spec = NodeSpec(
+        type="image_crop", title="Crop Image", category="Image", icon="✂", color="#8b5cf6",
+        description="Crop a rectangle from an image. Dimensions are anchored at the configured position.",
+        inputs=[NodePort(slot="image", label="image", kind="image", required=True)],
+        outputs=[NodePort(slot="image", label="cropped image", kind="image")],
+        fields=[
+            NodeField(key="x", label="Left", type="number", default=0, min=0, step=1),
+            NodeField(key="y", label="Top", type="number", default=0, min=0, step=1),
+            NodeField(key="width", label="Width", type="number", default=512, min=1, max=8192, step=1),
+            NodeField(key="height", label="Height", type="number", default=512, min=1, max=8192, step=1),
+        ],
+    )
+
+    def operation(self, params):
+        return {
+            "operation": "crop",
+            "x": int(params.get("x", 0)),
+            "y": int(params.get("y", 0)),
+            "width": int(params["width"]),
+            "height": int(params["height"]),
+        }
+
+
+@registry.register
+class ImageRotateNode(ImageTransformNode):
+    spec = NodeSpec(
+        type="image_rotate", title="Rotate / Flip", category="Image", icon="🔄", color="#8b5cf6",
+        description="Rotate by a right-angle multiple and/or mirror the image.",
+        inputs=[NodePort(slot="image", label="image", kind="image", required=True)],
+        outputs=[NodePort(slot="image", label="rotated image", kind="image")],
+        fields=[
+            NodeField(key="angle", label="Right-angle rotation", type="select", default="0", options=[
+                {"value": "0", "label": "0°"}, {"value": "90", "label": "90° clockwise"},
+                {"value": "180", "label": "180°"}, {"value": "270", "label": "270° clockwise"},
+            ]),
+            NodeField(key="flip", label="Mirror", type="select", default="none", options=[
+                {"value": "none", "label": "None"}, {"value": "horizontal", "label": "Horizontal"},
+                {"value": "vertical", "label": "Vertical"},
+            ]),
+        ],
+    )
+
+    def operation(self, params):
+        return {
+            "operation": "rotate",
+            "angle": int(params.get("angle", 0)),
+            "flip": params.get("flip", "none"),
+        }
+
+
+@registry.register
+class ImageAdjustNode(ImageTransformNode):
+    spec = NodeSpec(
+        type="image_adjust", title="Adjust Colors", category="Image", icon="🎛", color="#8b5cf6",
+        description="Brightness, contrast, saturation, and sharpness tuning on a 0.0–2.0 scale.",
+        inputs=[NodePort(slot="image", label="image", kind="image", required=True)],
+        outputs=[NodePort(slot="image", label="adjusted image", kind="image")],
+        fields=[
+            NodeField(key="brightness", label="Brightness", type="number", default=1.0, min=0, max=2, step=.05),
+            NodeField(key="contrast", label="Contrast", type="number", default=1.0, min=0, max=2, step=.05),
+            NodeField(key="saturation", label="Saturation", type="number", default=1.0, min=0, max=2, step=.05),
+            NodeField(key="sharpness", label="Sharpness", type="number", default=1.0, min=0, max=2, step=.05),
+        ],
+    )
+
+    def operation(self, params):
+        return {
+            "operation": "adjust",
+            "brightness": float(params.get("brightness", 1.0)),
+            "contrast": float(params.get("contrast", 1.0)),
+            "saturation": float(params.get("saturation", 1.0)),
+            "sharpness": float(params.get("sharpness", 1.0)),
+        }
+
+
+@registry.register
+class ImagePadNode(ImageTransformNode):
+    spec = NodeSpec(
+        type="image_pad", title="Pad / Border", category="Image", icon="⬚", color="#8b5cf6",
+        description="Add a solid-color frame around an image, useful before compositing.",
+        inputs=[NodePort(slot="image", label="image", kind="image", required=True)],
+        outputs=[NodePort(slot="image", label="padded image", kind="image")],
+        fields=[
+            NodeField(key="padding", label="Padding (px)", type="number", default=16, min=0, max=512, step=1),
+            NodeField(key="color", label="Color (#RRGGBB or name)", type="text", default="#000000"),
+        ],
+    )
+
+    def operation(self, params):
+        return {
+            "operation": "pad",
+            "padding": int(params.get("padding", 16)),
+            "color": str(params.get("color", "#000000")),
+        }
+
+
+@registry.register
+class ImageTextNode(ImageTransformNode):
+    spec = NodeSpec(
+        type="image_text", title="Add Text", category="Image", icon="🔤", color="#8b5cf6",
+        description="Overlay text using the bundled PIL default font; large sizes use a scalable fallback when available.",
+        inputs=[NodePort(slot="image", label="image", kind="image", required=True),
+                NodePort(slot="text", label="text (optional)", kind="text")],
+        outputs=[NodePort(slot="image", label="annotated image", kind="image")],
+        fields=[
+            NodeField(key="text", label="Text", type="textarea", default=""),
+            NodeField(key="position", label="Anchor", type="select", default="bottom-right", options=[
+                {"value": "top-left", "label": "Top left"}, {"value": "top-right", "label": "Top right"},
+                {"value": "bottom-left", "label": "Bottom left"}, {"value": "bottom-right", "label": "Bottom right"},
+                {"value": "center", "label": "Center"},
+            ]),
+            NodeField(key="size", label="Font size", type="number", default=32, min=8, max=256, step=1),
+            NodeField(key="color", label="Color (#RRGGBB)", type="text", default="#ffffff"),
+            NodeField(key="shadow", label="Add text shadow", type="boolean", default=True),
+        ],
+    )
+
+    def operation(self, params):
+        text = str(params.get("text", ""))
+        if not text:
+            raise ValueError("Text cannot be empty.")
+        return {
+            "operation": "text",
+            "text": text,
+            "position": params.get("position", "bottom-right"),
+            "size": int(params.get("size", 32)),
+            "color": str(params.get("color", "#ffffff")),
+            "shadow": bool(params.get("shadow", True)),
         }
 
 

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 class LoRARequest(BaseModel):
     """A LoRA weight file or Hugging Face repository and its generation strength."""
@@ -53,6 +53,45 @@ class ImageToImageRequest(ImageGenerationRequest):
 
     init_image_id: str = Field(..., description="ID returned by POST /upload")
     strength: float = Field(0.75, gt=0, le=1.0)
+
+
+class InpaintingRequest(ImageGenerationRequest):
+    """Request body for POST /submit_inpainting.
+
+    ``init_image_id`` and ``mask_image_id`` reference images previously uploaded
+    via POST /upload. The mask's white pixels mark regions that should be
+    regenerated; black pixels are preserved from the init image.
+    """
+
+    init_image_id: str = Field(..., description="ID of the base image to inpaint")
+    mask_image_id: str = Field(..., description="ID of the greyscale mask (white = edit)")
+    strength: float = Field(0.85, gt=0, le=1.0)
+
+
+class OutpaintingRequest(ImageGenerationRequest):
+    """Request body for POST /submit_outpainting.
+
+    Expands an image outward by generating brand-new pixels around the original.
+    The service composes an enlarged canvas, pastes the original into the
+    requested position, and builds a mask covering only the new area.
+    """
+
+    init_image_id: str = Field(..., description="ID of the source image")
+    expand_left: int = Field(0, ge=0, le=2048)
+    expand_right: int = Field(0, ge=0, le=2048)
+    expand_top: int = Field(0, ge=0, le=2048)
+    expand_bottom: int = Field(0, ge=0, le=2048)
+    strength: float = Field(0.9, gt=0, le=1.0)
+
+    @model_validator(mode="after")
+    def validate_expansion(self) -> "OutpaintingRequest":
+        total = self.expand_left + self.expand_right
+        vertical = self.expand_top + self.expand_bottom
+        if total == 0 and vertical == 0:
+            raise ValueError("At least one expansion direction must be greater than 0.")
+        if total > 2048 or vertical > 2048:
+            raise ValueError("Horizontal or vertical expansion cannot exceed 2048px combined.")
+        return self
 
 class JobStatus(BaseModel):
     """Status of a generation job."""
@@ -111,6 +150,28 @@ class PreloadRequest(BaseModel):
     """Request body for POST /preload."""
 
     model_keys: Optional[List[str]] = None
+
+
+class PromptEnhanceRequest(BaseModel):
+    """Request body for POST /v1/prompt/enhance."""
+
+    prompt: str = Field(..., min_length=1, max_length=8000)
+    negative_prompt: Optional[str] = Field(None, max_length=4000)
+    model_name: Optional[str] = Field(None, max_length=128)
+
+    @field_validator("prompt")
+    @classmethod
+    def require_visible_text(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("Prompt must contain visible text.")
+        return value
+
+
+class PromptEnhanceResponse(BaseModel):
+    """LLM-produced prompt rewrite, optionally with a matching negative prompt."""
+
+    prompt: str
+    negative_prompt: Optional[str] = None
 
 class JobSubmissionResponse(BaseModel):
     job_id: str

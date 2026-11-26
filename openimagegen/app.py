@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import io
+import json
 import logging
 import os
 import time
@@ -40,15 +41,19 @@ from .gguf_catalog import GGUF_PRESETS, build_gguf_model_config
 from .schemas import (
     ImageGenerationRequest,
     ImageToImageRequest,
+    InpaintingRequest,
     JobStatus,
     JobSubmissionResponse,
+    OutpaintingRequest,
     PreloadRequest,
+    PromptEnhanceRequest,
+    PromptEnhanceResponse,
     RemoteImageModelConfig,
 )
 from .models import get_registry
 from .nodes import get_node_registry
 from .models.presets import generation_profiles, generation_templates, recommended_generation_params
-from .nodes.openai_compatible import list_remote_models
+from .nodes.openai_compatible import chat_completion, list_remote_models
 from .service import ImageGenService
 from .workflow import (
     WorkflowDefinition,
@@ -64,6 +69,24 @@ service: Optional[ImageGenService] = None
 auth_manager: Optional[AuthManager] = None
 
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024
+
+_PROMPT_ENHANCE_SYSTEM = (
+    "You are an expert prompt engineer for image-generation diffusion models "
+    "(Stable Diffusion, SDXL, SD3, FLUX, Qwen Image). Rewrite the user's prompt "
+    "so that it becomes a richer, more visually concrete generation prompt: keep "
+    "the original subject and intent, add specific detail on composition, lighting, "
+    "materials, camera or rendering style, and negative tokens where helpful. "
+    "Do NOT invent a different subject, add people, or add brand names. "
+    "Reply with a SINGLE JSON object only, no markdown, no comments, no other text. "
+    "The JSON object MUST be an object with exactly these keys: "
+    '"prompt" (string, the enhanced positive prompt) and '
+    '"negative_prompt" (string, comma-separated negative tokens, or "" if not applicable).'
+)
+
+_PROMPT_ENHANCE_NEGATIVE_RULE = (
+    " The target model family does NOT support negative prompts: set "
+    '"negative_prompt" to an empty string in your JSON reply.'
+)
 
 
 @asynccontextmanager
@@ -138,6 +161,100 @@ def _require_service() -> ImageGenService:
     if service is None:
         raise HTTPException(status_code=503, detail="Service not initialized.")
     return service
+
+
+def _model_supports_negative_prompt(svc: ImageGenService, model_name: Optional[str]) -> bool:
+    """Return whether the selected model family accepts negative prompts."""
+    key = model_name or svc.default_model
+    info = svc.models_config.get(key) if key else None
+    if not info:
+        return True
+    adapter_cls = svc.registry.try_get(info.get("type", ""))
+    if adapter_cls is None:
+        return True
+    try:
+        return bool(adapter_cls().supports_negative_prompt())
+    except Exception:
+        return True
+
+
+def _build_enhance_user_message(request: PromptEnhanceRequest) -> str:
+    """Compose the user turn sent to the enhancement LLM."""
+    parts = [f"Original prompt:\n{request.prompt.strip()}"]
+    negative = (request.negative_prompt or "").strip()
+    if negative:
+        parts.append(f"Original negative prompt:\n{negative}")
+    parts.append("Return only the JSON object described in the system message.")
+    return "\n\n".join(parts)
+
+
+def _first_balanced_object(text: str) -> Optional[str]:
+    """Return the first balanced ``{...}`` substring, respecting strings/escapes."""
+    start = text.find("{")
+    while start != -1:
+        depth = 0
+        in_string = False
+        escaped = False
+        for index in range(start, len(text)):
+            character = text[index]
+            if in_string:
+                if escaped:
+                    escaped = False
+                elif character == "\\":
+                    escaped = True
+                elif character == '"':
+                    in_string = False
+                continue
+            if character == '"':
+                in_string = True
+            elif character == "{":
+                depth += 1
+            elif character == "}":
+                depth -= 1
+                if depth == 0:
+                    return text[start:index + 1]
+        start = text.find("{", start + 1)
+    return None
+
+
+def _parse_enhancement(text: str) -> tuple[str, Optional[str]]:
+    """Parse an LLM reply into (prompt, negative_prompt-or-None)."""
+    raw = (text or "").strip()
+    if not raw:
+        raise ValueError("The LLM returned an empty prompt.")
+
+    candidate = raw
+    if candidate.startswith("```"):
+        candidate = candidate.strip("`")
+        # Drop a leading language label such as "json" from a fenced block.
+        newline = candidate.find("\n")
+        if newline != -1 and not candidate[:newline].strip().startswith("{"):
+            candidate = candidate[newline + 1:]
+        candidate = candidate.strip()
+
+    payload = None
+    try:
+        payload = json.loads(candidate)
+    except json.JSONDecodeError:
+        block = _first_balanced_object(candidate)
+        if block is not None:
+            try:
+                payload = json.loads(block)
+            except json.JSONDecodeError:
+                payload = None
+
+    if not isinstance(payload, dict):
+        return raw, None
+
+    prompt_value = payload.get("prompt")
+    if not isinstance(prompt_value, str) or not prompt_value.strip():
+        raise ValueError("The LLM reply did not contain an enhanced prompt.")
+    negative_value = payload.get("negative_prompt")
+    if isinstance(negative_value, str) and negative_value.strip():
+        negative: Optional[str] = negative_value.strip()
+    else:
+        negative = None
+    return prompt_value.strip(), negative
 
 
 def get_current_user(
@@ -267,6 +384,10 @@ async def health_check() -> Dict:
         "hardware": svc.hardware,
         "auth_enabled": bool(auth_manager and auth_manager.enabled),
         "max_concurrent_jobs_per_user": svc.max_concurrent_jobs_per_user,
+        "prompt_enhancement": {
+            "enabled": bool(svc.config.get("llm", {}).get("enabled", False)),
+            "model": str(svc.config.get("llm", {}).get("model") or ""),
+        },
     }
 
 
@@ -280,11 +401,13 @@ async def get_models() -> Dict:
         adapter_cls = svc.registry.try_get(model_type)
         supports_neg = True
         supports_i2i = False
+        supports_inpaint = False
         if adapter_cls is not None:
             try:
                 tmp_adapter = adapter_cls()
                 supports_neg = tmp_adapter.supports_negative_prompt()
                 supports_i2i = tmp_adapter.supports_img2img()
+                supports_inpaint = tmp_adapter.supports_inpainting()
             except Exception:
                 pass
         models.append({
@@ -295,6 +418,7 @@ async def get_models() -> Dict:
             "downloaded": svc._is_model_downloaded(key),
             "supports_negative_prompt": supports_neg,
             "supports_img2img": supports_i2i,
+            "supports_inpainting": supports_inpaint,
             "generation_defaults": recommended_generation_params(key, info),
             "generation_profiles": generation_profiles(key, info),
             "execution_hint": svc.execution_hint(key, info),
@@ -378,6 +502,72 @@ async def delete_api_model(
 async def get_generation_templates() -> Dict:
     """Return shared prompt ideas; family-aware settings are resolved by each client."""
     return {"templates": generation_templates()}
+
+
+@app.post("/v1/prompt/enhance", response_model=PromptEnhanceResponse)
+async def enhance_prompt(
+    request: PromptEnhanceRequest,
+    user: UserContext = Depends(get_current_user),
+) -> PromptEnhanceResponse:
+    """Rewrite a prompt using the configured OpenAI-compatible LLM."""
+    svc = _require_service()
+    llm_cfg = svc.config.get("llm") or {}
+    if not llm_cfg.get("enabled", False):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Prompt enhancement is disabled. Enable [llm].enabled in the configuration "
+                "and set the matching API key environment variable."
+            ),
+        )
+
+    model_id = str(llm_cfg.get("model") or "").strip()
+    if not model_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Prompt enhancement requires [llm].model to be configured.",
+        )
+
+    if auth_manager is not None and auth_manager.enabled:
+        auth_manager.enforce_quota(user.user_id)
+
+    supports_negative = _model_supports_negative_prompt(svc, request.model_name)
+    system_prompt = _PROMPT_ENHANCE_SYSTEM
+    custom_system = str(llm_cfg.get("system_prompt") or "").strip()
+    if custom_system:
+        system_prompt = f"{system_prompt}\n\nAdditional instructions:\n{custom_system}"
+    if not supports_negative:
+        system_prompt = f"{system_prompt}{_PROMPT_ENHANCE_NEGATIVE_RULE}"
+
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": _build_enhance_user_message(request)},
+    ]
+
+    try:
+        reply = await asyncio.to_thread(
+            chat_completion,
+            str(llm_cfg.get("base_url") or "http://127.0.0.1:11434/v1"),
+            model_id,
+            messages,
+            api_key_env=str(llm_cfg.get("api_key_env") or "OPENAI_API_KEY"),
+            timeout_seconds=int(llm_cfg.get("timeout_seconds", 60)),
+            verify_ssl=bool(llm_cfg.get("verify_ssl", True)),
+            temperature=float(llm_cfg.get("temperature", 0.7)),
+            max_tokens=int(llm_cfg.get("max_tokens", 512)),
+        )
+        enhanced_prompt, enhanced_negative = _parse_enhancement(reply)
+    except ValueError as error:
+        logger.warning(f"Prompt enhancement produced an unusable reply: {error}")
+        raise HTTPException(status_code=502, detail=f"Prompt enhancement failed: {error}") from error
+    except RuntimeError as error:
+        logger.warning(f"Prompt enhancement transport error: {error}")
+        raise HTTPException(status_code=502, detail=f"Prompt enhancement failed: {error}") from error
+
+    if not supports_negative:
+        enhanced_negative = None
+
+    return PromptEnhanceResponse(prompt=enhanced_prompt, negative_prompt=enhanced_negative)
 
 
 @app.post("/preload")
@@ -603,6 +793,66 @@ async def submit_img2img_job(
     return _submit_generation(svc, user, request, "img2img")
 
 
+@app.post("/submit_inpainting", response_model=JobSubmissionResponse)
+async def submit_inpainting_job(
+    request: InpaintingRequest,
+    user: UserContext = Depends(get_current_user),
+):
+    """Submit a mask-guided inpainting job."""
+    svc = _require_service()
+    if svc.get_upload_path(request.init_image_id) is None:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Init image '{request.init_image_id}' not found. Upload first.",
+        )
+    if svc.get_mask_path(request.mask_image_id) is None:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Mask '{request.mask_image_id}' not found. Upload first.",
+        )
+    return _submit_generation(svc, user, request, "inpainting")
+
+
+@app.post("/submit_outpainting", response_model=JobSubmissionResponse)
+async def submit_outpainting_job(
+    request: OutpaintingRequest,
+    user: UserContext = Depends(get_current_user),
+):
+    """Submit an outpainting job that expands an existing image outward."""
+    svc = _require_service()
+    if svc.get_upload_path(request.init_image_id) is None:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Init image '{request.init_image_id}' not found. Upload first.",
+        )
+    return _submit_generation(svc, user, request, "outpainting")
+
+
+@app.post("/upload_mask")
+async def upload_mask(
+    file: UploadFile = File(...),
+    user: UserContext = Depends(get_current_user),
+):
+    """Upload a mask image (any type). Returns ``mask_id`` for inpainting requests."""
+    svc = _require_service()
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Mask must be an image.")
+
+    contents = await file.read()
+    if len(contents) > MAX_UPLOAD_SIZE:
+        raise HTTPException(status_code=413, detail="File too large. Maximum 10 MB.")
+
+    try:
+        img = PILImage.open(io.BytesIO(contents))
+        mask = img.convert("L")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid mask image.")
+
+    mask_id = str(uuid.uuid4())
+    svc.save_mask(mask, mask_id)
+    return {"mask_id": mask_id, "url": f"/uploads/mask_{mask_id}"}
+
+
 @app.get("/v1/nodes")
 async def list_workflow_nodes() -> Dict:
     """Declarative schemas used by workflow UIs to render built-in and community nodes."""
@@ -715,7 +965,13 @@ async def upload_image(
 async def serve_uploaded_image(image_id: str):
     """Serve an uploaded image (public, keyed by unguessable UUID)."""
     svc = _require_service()
-    filepath = svc.get_upload_path(image_id)
+    # Mask IDs are prefixed at storage time; the route accepts both plain image
+    # IDs (init images) and ``mask_`` IDs (masks) so the frontend only needs one
+    # URL pattern.
+    if image_id.startswith("mask_"):
+        filepath = svc.get_mask_path(image_id[len("mask_"):])
+    else:
+        filepath = svc.get_upload_path(image_id)
     if filepath is None:
         raise HTTPException(status_code=404, detail="Upload not found.")
     return FileResponse(path=filepath, media_type="image/png")

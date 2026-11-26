@@ -87,6 +87,44 @@ WebSockets.
 Only one primary generation request is selected per run. The current engine is
 not a general multi-generation scheduler or batch-image execution engine.
 
+Inpainting and outpainting (Studio)
+-----------------------------------
+
+Studio exposes four generation modes:
+
+``Text → Image``
+   Standard text-to-image generation (``POST /submit``).
+
+``Image → Image``
+   Denoising-based transformation using a full image prompt
+   (``POST /submit_img2img``).
+
+``Inpaint``
+   Mask-guided editing (``POST /submit_inpainting``). Upload an init image,
+   then paint white where you want changes on the mask canvas. The mask is
+   uploaded via ``POST /upload_mask`` and stored as a greyscale PNG
+   (``mask_<id>.png``) alongside the init image.
+
+``Outpaint``
+   Expands the canvas outward (``POST /submit_outpainting``). Provide
+   ``expand_top``, ``expand_bottom``, ``expand_left``, and ``expand_right``
+   (each 0–2048, combined ≤ 2048 per axis). The service composes an enlarged
+   canvas, pastes the original into position, and builds a mask covering only
+   the newly added area.
+
+The service routes both flows through ``BaseModelAdapter.generate_inpainting``.
+Adapters that do not implement this hook report ``supports_inpainting == False``
+in ``GET /models`` and the UI warns before submission. Current support:
+Stable Diffusion 1.x adapters. Dedicated SDXL inpaint, FLUX edit, and Qwen Edit
+flows require their specialised pipelines and are not enabled here.
+
+Mask editor semantics:
+
+* White pixels regenerate. Black pixels are preserved.
+* Painting uses a brush (white) or eraser (black) with a configurable size.
+* The mask canvas resizes to the uploaded image and invalidates its cached
+  ``mask_image_id`` whenever paint or invert changes the pixels.
+
 Reusable node templates
 -----------------------
 

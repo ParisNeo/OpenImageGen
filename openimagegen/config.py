@@ -72,6 +72,18 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "enabled": False,
         "paths": ["./nodes"],
     },
+    "llm": {
+        # Optional OpenAI-compatible LLM powering prompt enhancement.
+        "enabled": False,
+        "base_url": "http://127.0.0.1:11434/v1",
+        "model": "",
+        "api_key_env": "OPENAI_API_KEY",
+        "system_prompt": "",
+        "timeout_seconds": 60,
+        "verify_ssl": True,
+        "temperature": 0.7,
+        "max_tokens": 512,
+    },
 }
 
 
